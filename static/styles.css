@@ -61,8 +61,9 @@ body {
 
 #toolbar {
     display: flex;
-    gap: 6px;
+    align-items: center;
     flex-wrap: wrap;
+    gap: 6px;
     padding: 8px 10px;
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border-subtle);
@@ -209,6 +210,21 @@ button:hover {
     color: var(--color-green);
 }
 
+.badge-string {
+    background: var(--color-badge-string-bg);
+    color: var(--color-peach);
+}
+
+.badge-number {
+    background: var(--color-badge-number-bg);
+    color: var(--color-mauve);
+}
+
+.badge-boolean {
+    background: var(--color-badge-boolean-bg);
+    color: var(--color-red);
+}
+
 /* Node name (editable) */
 .node-name {
     flex: 1;
@@ -276,6 +292,12 @@ button:hover {
     border-radius: 4px;
     color: var(--color-text);
     font-family: monospace;
+}
+
+.prop-required {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* Port attached to a property row (output) */

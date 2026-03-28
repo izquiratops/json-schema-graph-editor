@@ -1,8 +1,11 @@
 import type { PropType } from './types';
 
-export const PROP_TYPES: PropType[] = [
-  'string', 'number', 'integer', 'boolean', 'object', 'array', 'null',
-];
+const PRIMITIVE_TYPES: PropType[] = ['string', 'number', 'integer', 'boolean', 'null'];
 
-export const CAN_CONNECT = (type: PropType): boolean =>
-  type === 'object' || type === 'array';
+const STRUCT_TYPES: PropType[] = ['object', 'array'];
+
+export const PROP_TYPES: PropType[] = [...PRIMITIVE_TYPES, ...STRUCT_TYPES];
+
+export const IS_PRIMITIVE = (type: PropType): boolean => PRIMITIVE_TYPES.includes(type);
+
+export const CAN_CONNECT = (type: PropType): boolean => STRUCT_TYPES.includes(type);

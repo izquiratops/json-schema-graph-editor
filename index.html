@@ -13,6 +13,10 @@
     <header id="toolbar">
       <button onclick="NodeManager.add('object')">+ object</button>
       <button onclick="NodeManager.add('array')">+ array</button>
+      <span>・</span>
+      <button onclick="NodeManager.add('string')">+ string</button>
+      <button onclick="NodeManager.add('number')">+ number</button>
+      <button onclick="NodeManager.add('boolean')">+ boolean</button>
     </header>
     <div id="canvas-wrap">
       <svg id="svg"></svg>
@@ -21,7 +25,7 @@
   </div>
   <div id="right-panel">
     <header id="right-toolbar">
-      <span>JSON Schema</span>
+      <h3>JSON Schema</h3>
       <button onclick="SchemaOutput.copy()">copy</button>
     </header>
     <div id="schema-output"><pre id="schema-pre"></pre></div>
