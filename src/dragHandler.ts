@@ -6,14 +6,8 @@ export const DragHandler = {
   _offset: { x: 0, y: 0 },
 
   attach(el: HTMLElement, id: string): void {
-    el.querySelector<HTMLElement>('.node-header')!.onmousedown = (e: MouseEvent) => {
-      const ignore = ['INPUT', 'SELECT', 'BUTTON'];
-      if (
-        ignore.includes((e.target as HTMLElement).tagName) ||
-        (e.target as HTMLElement).classList.contains('port-in')
-      ) return;
+    el.querySelector<HTMLElement>('.badge')!.onmousedown = (e: MouseEvent) => {
       e.preventDefault();
-
       this._dragging = id;
       const rect = el.getBoundingClientRect();
       const wrap = document.getElementById('canvas-wrap')!.getBoundingClientRect();

@@ -157,12 +157,7 @@ button:hover {
     gap: 6px;
     padding: 7px 10px;
     border-bottom: 1px solid var(--color-border-subtle);
-    cursor: grab;
     position: relative;
-}
-
-.node-header:active {
-    cursor: grabbing;
 }
 
 /* Port attached to node header (input) */
@@ -192,6 +187,11 @@ button:hover {
     border-radius: 4px;
     font-weight: bold;
     flex-shrink: 0;
+    cursor: grab;
+}
+
+.badge:active {
+    cursor: grabbing;
 }
 
 .badge-root {
@@ -209,21 +209,6 @@ button:hover {
     color: var(--color-green);
 }
 
-.badge-string {
-    background: var(--color-badge-string-bg);
-    color: var(--color-peach);
-}
-
-.badge-number {
-    background: var(--color-badge-number-bg);
-    color: var(--color-mauve);
-}
-
-.badge-boolean {
-    background: var(--color-badge-boolean-bg);
-    color: var(--color-red);
-}
-
 /* Node name (editable) */
 .node-name {
     flex: 1;
@@ -234,7 +219,7 @@ button:hover {
     font-size: 12px;
     font-weight: bold;
     font-family: monospace;
-    cursor: inherit;
+    cursor: text;
     min-width: 0;
 }
 
