@@ -18,6 +18,7 @@ export interface SchemaNode {
 
 export interface Edge {
   fromNode: string;
-  fromProp: number;
   toNode: string;
+  fromProp?: number;
+  toProp?: number;
 }

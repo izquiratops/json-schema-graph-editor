@@ -1,5 +1,5 @@
 import type { PropType } from './types';
-import { PROP_TYPES, CAN_CONNECT, IS_PRIMITIVE } from './constants';
+import { PROP_TYPES, IS_STRUCTURE, IS_PRIMITIVE } from './constants';
 import { State } from './state';
 import { DragHandler } from './dragHandler';
 import { PortHandler } from './portHandler';
@@ -53,11 +53,11 @@ export const NodeManager = {
 
   changePropType(nodeId: string, propIdx: number, newType: PropType): void {
     const prop = State.nodes[nodeId]!.props[propIdx]!;
+    if (prop.type === newType) return;
+
     prop.type = newType;
-    if (!CAN_CONNECT(newType)) {
-      prop._ref = null;
-      State.removeEdgeFromProp(nodeId, propIdx);
-    }
+    prop._ref = null;
+    State.removeEdgeFromProp(nodeId, propIdx);
     this.render(nodeId);
     EdgeRenderer.render();
     SchemaOutput.update();
@@ -78,7 +78,7 @@ export const NodeManager = {
     el.style.left = n.x + 'px';
     el.style.top = n.y + 'px';
 
-    el.innerHTML = this._headerHTML(n.id, n.name, n.type as PropType, isRoot) + this._bodyHTML(id, n.type as PropType, n.props);
+    el.innerHTML = this._headerHTML(n.id, n.name, n.type as PropType, isRoot) + this._bodyHTML(id, n.type as PropType, n.props, isRoot);
 
     DragHandler.attach(el, id);
     PortHandler.attach(el, id);
@@ -104,9 +104,10 @@ export const NodeManager = {
     nodeId: string,
     type: PropType,
     props: Array<{ name: string; type: PropType; _ref?: string | null }>,
+    isRoot: boolean,
   ): string {
-    const hasProps = CAN_CONNECT(type);
-    const rows = props.map((p, i) => this._propRowHTML(nodeId, p, i)).join('');
+    const hasProps = IS_STRUCTURE(type);
+    const rows = props.map((p, i) => this._propRowHTML(type, nodeId, p, i, isRoot)).join('');
     const addBtn = hasProps
       ? `<button class="btn-add-prop" onclick="NodeManager.addProp('${nodeId}')">+ add property</button>`
       : '';
@@ -114,15 +115,21 @@ export const NodeManager = {
   },
 
   _propRowHTML(
+    nodeType: PropType,
     nodeId: string,
     prop: { name: string; type: PropType; required?: boolean },
     idx: number,
+    isRoot: boolean,
   ): string {
     const typeOptions = PROP_TYPES.map(t =>
       `<option${prop.type === t ? ' selected' : ''}>${t}</option>`,
     ).join('');
 
-    const portOut = CAN_CONNECT(prop.type)
+    const portIn = (!isRoot && IS_STRUCTURE(nodeType))
+      ? `<div class="port-in" data-node="${nodeId}" data-prop="${idx}"></div>`
+      : '';
+
+    const portOut = IS_STRUCTURE(prop.type)
       ? `<div class="port-out" data-node="${nodeId}" data-prop="${idx}"></div>`
       : '';
 
@@ -130,6 +137,7 @@ export const NodeManager = {
 
     return `
       <div class="prop-row" id="prop-${nodeId}-${idx}">
+        ${portIn}
         <input class="prop-name" value="${prop.name}"
           onchange="State.nodes['${nodeId}'].props[${idx}].name = this.value; SchemaOutput.update()">
         <select class="prop-type"

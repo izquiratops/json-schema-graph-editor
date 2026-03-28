@@ -63,6 +63,21 @@ describe('SchemaBuilder.build — object', () => {
       properties: { x: { type: 'object' } },
     });
   });
+
+  it('builds nested schemas from node-to-prop connections', () => {
+    addNode('root', 'object', [{ name: 'addr', type: 'object' }]);
+    addNode('n1', 'object', [{ name: 'city', type: 'string' }]);
+    State.addEdge({ fromNode: 'n1', toNode: 'root', toProp: 0 });
+    assert.deepEqual(SchemaBuilder.build('root'), {
+      type: 'object',
+      properties: {
+        addr: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+        },
+      },
+    });
+  });
 });
 
 describe('SchemaBuilder.build — array', () => {

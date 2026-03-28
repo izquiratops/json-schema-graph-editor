@@ -8,7 +8,7 @@ export const EdgeRenderer = {
 
     State.edges.forEach(edge => {
       const s = this._portOutPos(edge.fromNode, edge.fromProp);
-      const t = this._portInPos(edge.toNode);
+      const t = this._portInPos(edge.toNode, edge.toProp);
       if (s && t) this._drawCurve(svg, s, t, 'edge');
     });
 
@@ -39,13 +39,19 @@ export const EdgeRenderer = {
     svg.appendChild(path);
   },
 
-  _portOutPos(nodeId: string, propIdx: number): { x: number; y: number } | null {
-    const port = document.querySelector<HTMLElement>(`#prop-${nodeId}-${propIdx} .port-out`);
+  _portOutPos(nodeId: string, propIdx?: number): { x: number; y: number } | null {
+    const selector = propIdx === undefined
+      ? `#node-${nodeId} .node-header .port-out`
+      : `#prop-${nodeId}-${propIdx} .port-out`;
+    const port = document.querySelector<HTMLElement>(selector);
     return port ? PortHandler.center(port) : null;
   },
 
-  _portInPos(nodeId: string): { x: number; y: number } | null {
-    const port = document.querySelector<HTMLElement>(`#node-${nodeId} .port-in`);
+  _portInPos(nodeId: string, propIdx?: number): { x: number; y: number } | null {
+    const selector = propIdx === undefined
+      ? `#node-${nodeId} .node-header .port-in`
+      : `#prop-${nodeId}-${propIdx} .port-in`;
+    const port = document.querySelector<HTMLElement>(selector);
     return port ? PortHandler.center(port) : null;
   },
 };
