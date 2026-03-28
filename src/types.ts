@@ -1,0 +1,22 @@
+export type PropType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null';
+
+export interface Prop {
+  name: string;
+  type: PropType;
+  _ref?: string | null;
+}
+
+export interface SchemaNode {
+  id: string;
+  type: PropType;
+  name: string;
+  props: Prop[];
+  x: number;
+  y: number;
+}
+
+export interface Edge {
+  fromNode: string;
+  fromProp: number;
+  toNode: string;
+}

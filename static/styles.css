@@ -1,0 +1,389 @@
+:root {
+    /* ─── Surfaces ─── */
+    --color-bg:      #1e1e2e;
+    --color-surface: #181825;
+    --color-overlay: #24273a;
+
+    /* ─── Borders ─── */
+    --color-border-subtle: #313244;
+    --color-border:        #45475a;
+    --color-muted:         #585b70;
+
+    /* ─── Text ─── */
+    --color-text:        #cdd6f4;
+    --color-text-subtle: #a6adc8;
+
+    /* ─── Accents ─── */
+    --color-blue:  #89b4fa;
+    --color-green: #a6e3a1;
+    --color-peach: #fab387;
+    --color-mauve: #cba6f7;
+    --color-red:   #f38ba8;
+
+    /* ─── Badge backgrounds ─── */
+    --color-badge-object-bg:  #1e3a5f;
+    --color-badge-array-bg:   #1a3a2a;
+    --color-badge-string-bg:  #3a2a1a;
+    --color-badge-number-bg:  #2a1a3a;
+    --color-badge-boolean-bg: #3a1a2a;
+}
+
+/* ─── Reset & base ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: monospace;
+    font-size: 13px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ─── Layout ────────────────────────────────────────────────── */
+#app {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    height: 100vh;
+}
+
+#left-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+#canvas-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: var(--color-bg);
+}
+
+#canvas {
+    position: absolute;
+    inset: 0;
+}
+
+#svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* ─── Right panel (schema output) ───────────────────────────── */
+#right-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border-subtle);
+}
+
+#right-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+#right-toolbar span {
+    font-size: 12px;
+    color: var(--color-text-subtle);
+}
+
+#schema-output {
+    flex: 1;
+    overflow: auto;
+    padding: 12px;
+}
+
+#schema-output pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+}
+
+/* ─── Buttons ───────────────────────────────────────────────── */
+button {
+    font-size: 11px;
+    padding: 3px 9px;
+    border: 1px solid var(--color-border);
+    border-radius: 5px;
+    background: var(--color-border-subtle);
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: monospace;
+}
+
+button:hover {
+    background: var(--color-border);
+}
+
+/* ─── Nodes ─────────────────────────────────────────────────── */
+.node {
+    position: absolute;
+    min-width: 180px;
+    background: var(--color-overlay);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    user-select: none;
+}
+
+.node.selected {
+    border-color: var(--color-blue);
+}
+
+.node-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    cursor: grab;
+    position: relative;
+}
+
+.node-header:active {
+    cursor: grabbing;
+}
+
+/* Port attached to node header (input) */
+.port-in {
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--color-muted);
+    background: var(--color-overlay);
+    cursor: crosshair;
+    z-index: 2;
+}
+
+.port-in:hover {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+}
+
+/* Type badge */
+.badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.badge-root {
+    background: var(--color-border);
+    color: var(--color-text);
+}
+
+.badge-object {
+    background: var(--color-badge-object-bg);
+    color: var(--color-blue);
+}
+
+.badge-array {
+    background: var(--color-badge-array-bg);
+    color: var(--color-green);
+}
+
+.badge-string {
+    background: var(--color-badge-string-bg);
+    color: var(--color-peach);
+}
+
+.badge-number {
+    background: var(--color-badge-number-bg);
+    color: var(--color-mauve);
+}
+
+.badge-boolean {
+    background: var(--color-badge-boolean-bg);
+    color: var(--color-red);
+}
+
+/* Node name (editable) */
+.node-name {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-text);
+    font-size: 12px;
+    font-weight: bold;
+    font-family: monospace;
+    cursor: inherit;
+    min-width: 0;
+}
+
+.node-name:focus {
+    cursor: text;
+}
+
+.btn-delete-node {
+    background: none;
+    border: none;
+    color: var(--color-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.btn-delete-node:hover {
+    color: var(--color-red);
+}
+
+/* ─── Property rows ─────────────────────────────────────────── */
+.node-body {
+    padding: 4px 0;
+}
+
+.prop-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    position: relative;
+}
+
+.prop-row:hover {
+    background: var(--color-border-subtle);
+}
+
+.prop-name {
+    width: 72px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--color-text);
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.prop-type {
+    font-size: 11px;
+    padding: 1px 3px;
+    background: var(--color-border-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: monospace;
+}
+
+/* Port attached to a property row (output) */
+.port-out {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--color-muted);
+    background: var(--color-overlay);
+    cursor: crosshair;
+    z-index: 2;
+}
+
+.port-out:hover {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+}
+
+.btn-delete-prop {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.prop-row:hover .btn-delete-prop {
+    color: var(--color-muted);
+}
+
+.btn-delete-prop:hover {
+    color: var(--color-red) !important;
+}
+
+/* Add property button */
+.btn-add-prop {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    font-size: 11px;
+    color: var(--color-muted);
+    cursor: pointer;
+    border-top: 1px solid var(--color-border-subtle);
+    margin-top: 2px;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-radius: 0 0 8px 8px;
+    width: 100%;
+    font-family: monospace;
+    text-align: left;
+}
+
+.btn-add-prop:hover {
+    color: var(--color-text);
+    background: var(--color-border-subtle);
+}
+
+/* ─── Edges ─────────────────────────────────────────────────── */
+.edge {
+    stroke: var(--color-muted);
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.edge-preview {
+    stroke: var(--color-blue);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 5;
+}
+
+/* ─── Syntax highlight ──────────────────────────────────────── */
+.hl-key {
+    color: var(--color-blue);
+}
+
+.hl-str {
+    color: var(--color-green);
+}
+
+.hl-num {
+    color: var(--color-peach);
+}
+
+.hl-bool {
+    color: var(--color-red);
+}

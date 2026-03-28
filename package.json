@@ -1,0 +1,17 @@
+{
+  "name": "schema-editor",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --outfile=dist/bundle.js --format=iife",
+    "watch": "esbuild src/main.ts --bundle --outfile=dist/bundle.js --format=iife --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --import tsx/esm tests/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "esbuild": "^0.25.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

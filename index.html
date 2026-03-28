@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Schema Node Editor</title>
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+
+<div id="app">
+  <div id="left-panel">
+    <header id="toolbar">
+      <button onclick="NodeManager.add('object')">+ object</button>
+      <button onclick="NodeManager.add('array')">+ array</button>
+    </header>
+    <div id="canvas-wrap">
+      <svg id="svg"></svg>
+      <div id="canvas"></div>
+    </div>
+  </div>
+  <div id="right-panel">
+    <header id="right-toolbar">
+      <span>JSON Schema</span>
+      <button onclick="SchemaOutput.copy()">copy</button>
+    </header>
+    <div id="schema-output"><pre id="schema-pre"></pre></div>
+  </div>
+</div>
+
+<script src="dist/bundle.js"></script>
+</body>
+</html>
