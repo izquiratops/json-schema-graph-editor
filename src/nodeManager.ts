@@ -1,5 +1,5 @@
 import type { PropType } from './types';
-import { PROP_TYPES, CAN_CONNECT } from './constants';
+import { PROP_TYPES, CAN_CONNECT, IS_PRIMITIVE } from './constants';
 import { State } from './state';
 import { DragHandler } from './dragHandler';
 import { PortHandler } from './portHandler';
@@ -13,12 +13,12 @@ export const NodeManager = {
       id,
       type,
       name: type + '_' + (id.slice(1)),
-      props: [] as { name: string; type: PropType }[],
+      props: [] as { name: string; type: PropType; required?: boolean }[],
       x: x ?? 60 + Math.random() * 220,
       y: y ?? 80 + Math.random() * 160,
     };
-    if (type === 'object') node.props = [{ name: 'field1', type: 'string' }];
-    if (type === 'array')  node.props = [{ name: 'items',  type: 'string' }];
+    if (type === 'object') node.props = [{ name: 'field1', type: 'string', required: false }];
+    if (type === 'array') node.props = [{ name: 'items', type: 'string', required: false }];
     State.addNode(node);
     this.render(id);
     SchemaOutput.update();
@@ -36,7 +36,7 @@ export const NodeManager = {
   },
 
   addProp(nodeId: string): void {
-    State.nodes[nodeId]!.props.push({ name: 'field', type: 'string' });
+    State.nodes[nodeId]!.props.push({ name: 'field', type: 'string', required: false });
     this.render(nodeId);
     EdgeRenderer.render();
     SchemaOutput.update();
@@ -67,7 +67,7 @@ export const NodeManager = {
     const n = State.nodes[id]!;
     const isRoot = id === 'root';
 
-    let el = document.getElementById('node-' + id) as HTMLElement | null;
+    let el = document.getElementById('node-' + id);
     if (!el) {
       el = document.createElement('div');
       el.id = 'node-' + id;
@@ -76,7 +76,7 @@ export const NodeManager = {
     }
 
     el.style.left = n.x + 'px';
-    el.style.top  = n.y + 'px';
+    el.style.top = n.y + 'px';
 
     el.innerHTML = this._headerHTML(n.id, n.name, n.type as PropType, isRoot) + this._bodyHTML(id, n.type as PropType, n.props);
 
@@ -85,9 +85,10 @@ export const NodeManager = {
   },
 
   _headerHTML(id: string, name: string, type: PropType, isRoot: boolean): string {
-    const portIn = isRoot ? '' : `<div class="port-in" data-node="${id}"></div>`;
+    const portIn = (isRoot || IS_PRIMITIVE(type)) ? '' : `<div class="port-in" data-node="${id}"></div>`;
+    const portOut = isRoot ? '' : `<div class="port-out" data-node="${id}"></div>`;
     const delBtn = isRoot ? '' : `<button class="btn-delete-node" onclick="NodeManager.delete('${id}')">×</button>`;
-    const ro     = isRoot ? 'readonly' : '';
+    const ro = isRoot ? 'readonly' : '';
     return `
       <div class="node-header">
         ${portIn}
@@ -95,6 +96,7 @@ export const NodeManager = {
         <input class="node-name" value="${name}" ${ro}
           onchange="State.nodes['${id}'].name = this.value; SchemaOutput.update()">
         ${delBtn}
+        ${portOut}
       </div>`;
   },
 
@@ -113,7 +115,7 @@ export const NodeManager = {
 
   _propRowHTML(
     nodeId: string,
-    prop: { name: string; type: PropType },
+    prop: { name: string; type: PropType; required?: boolean },
     idx: number,
   ): string {
     const typeOptions = PROP_TYPES.map(t =>
@@ -124,6 +126,8 @@ export const NodeManager = {
       ? `<div class="port-out" data-node="${nodeId}" data-prop="${idx}"></div>`
       : '';
 
+    const requiredChecked = prop.required ? 'checked' : '';
+
     return `
       <div class="prop-row" id="prop-${nodeId}-${idx}">
         <input class="prop-name" value="${prop.name}"
@@ -132,6 +136,11 @@ export const NodeManager = {
           onchange="NodeManager.changePropType('${nodeId}', ${idx}, this.value)">
           ${typeOptions}
         </select>
+        <label class="prop-required">
+          <input type="checkbox" ${requiredChecked}
+            onchange="State.nodes['${nodeId}'].props[${idx}].required = this.checked; SchemaOutput.update()">
+          <small>Required</small>
+        </label>
         <button class="btn-delete-prop" onclick="NodeManager.deleteProp('${nodeId}', ${idx})">×</button>
         ${portOut}
       </div>`;

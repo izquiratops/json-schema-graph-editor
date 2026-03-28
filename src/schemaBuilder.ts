@@ -3,6 +3,7 @@ import { State } from './state';
 export interface JsonSchema {
   type?: string;
   properties?: Record<string, JsonSchema>;
+  required?: string[];
   items?: JsonSchema;
 }
 
@@ -18,12 +19,15 @@ export const SchemaBuilder = {
 
     if (n.type === 'object') {
       const properties: Record<string, JsonSchema> = {};
+      const required: string[] = [];
       n.props.forEach(p => {
         properties[p.name] = (p._ref && State.nodes[p._ref])
           ? this.build(p._ref, new Set(visited))
           : { type: p.type };
+        if (p.required) required.push(p.name);
       });
       if (Object.keys(properties).length > 0) schema.properties = properties;
+      if (required.length > 0) schema.required = required;
     }
 
     if (n.type === 'array' && n.props.length > 0) {

@@ -39,6 +39,7 @@ export const PortHandler = {
         const { fromNode, fromProp } = this._preview;
         try {
           State.addEdge({ fromNode, fromProp, toNode: id });
+          // TODO: This throws if an output node port is attached to an input node port (instead of an input prop port) 
           State.nodes[fromNode]!.props[fromProp]!._ref = id;
         } catch (error) {
           const { message } = error as Error;

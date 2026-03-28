@@ -1,3 +1,4 @@
+import { IS_PRIMITIVE } from './constants';
 import type { SchemaNode, Edge } from './types';
 
 const _state = {
@@ -18,8 +19,8 @@ export const State = {
   removeNode(id: string): void    { delete _state.nodes[id]; },
 
   addEdge(edge: Edge): void {
-    const propType  = _state.nodes[edge.fromNode]?.props[edge.fromProp]?.type;
-    const nodeType  = _state.nodes[edge.toNode]?.type;
+    const propType = _state.nodes[edge.fromNode]?.type;
+    const nodeType = _state.nodes[edge.toNode]?.type;
     if (propType !== nodeType) {
       throw new Error(
         `Type mismatch: prop type "${propType}" is not compatible with node type "${nodeType}".`,
