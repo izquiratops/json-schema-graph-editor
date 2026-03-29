@@ -1,10 +1,9 @@
 import type { PropType } from './types';
-import { PROP_TYPES, IS_STRUCTURE, IS_PRIMITIVE } from './constants';
+import { PROP_TYPES } from './constants';
+import { getNodeBehavior, canPropHaveOutPort } from './nodeBehavior';
 import { State } from './state';
 import { DragHandler } from './dragHandler';
 import { PortHandler } from './portHandler';
-import { EdgeRenderer } from './edgeRenderer';
-import { SchemaOutput } from './schemaOutput';
 
 export const NodeManager = {
   add(type: PropType, x?: number, y?: number): void {
@@ -20,8 +19,6 @@ export const NodeManager = {
     if (type === 'object') node.props = [{ name: 'field1', type: 'string', required: false }];
     if (type === 'array') node.props = [{ name: 'items', type: 'string', required: false }];
     State.addNode(node);
-    this.render(id);
-    SchemaOutput.update();
   },
 
   delete(id: string): void {
@@ -31,41 +28,31 @@ export const NodeManager = {
     );
     document.getElementById('node-' + id)?.remove();
     State.removeNode(id);
-    EdgeRenderer.render();
-    SchemaOutput.update();
   },
 
   addProp(nodeId: string): void {
-    State.nodes[nodeId]!.props.push({ name: 'field', type: 'string', required: false });
-    this.render(nodeId);
-    EdgeRenderer.render();
-    SchemaOutput.update();
+    State.addProp(nodeId, { name: 'field', type: 'string', required: false });
   },
 
   deleteProp(nodeId: string, propIdx: number): void {
     State.removeEdgeFromProp(nodeId, propIdx);
     State.shiftEdgePropIndices(nodeId, propIdx);
-    State.nodes[nodeId]!.props.splice(propIdx, 1);
-    this.render(nodeId);
-    EdgeRenderer.render();
-    SchemaOutput.update();
+    State.removeProp(nodeId, propIdx);
   },
 
   changePropType(nodeId: string, propIdx: number, newType: PropType): void {
     const prop = State.nodes[nodeId]!.props[propIdx]!;
     if (prop.type === newType) return;
 
-    prop.type = newType;
+    State.setPropType(nodeId, propIdx, newType);
     prop._ref = null;
     State.removeEdgeFromProp(nodeId, propIdx);
-    this.render(nodeId);
-    EdgeRenderer.render();
-    SchemaOutput.update();
   },
 
   render(id: string): void {
     const n = State.nodes[id]!;
-    const isRoot = id === 'root';
+    const behavior = getNodeBehavior(n.id, n.type as PropType);
+    const isRoot = behavior.nodeKind === 'root';
 
     let el = document.getElementById('node-' + id);
     if (!el) {
@@ -80,21 +67,58 @@ export const NodeManager = {
 
     el.innerHTML = this._headerHTML(n.id, n.name, n.type as PropType, isRoot) + this._bodyHTML(id, n.type as PropType, n.props, isRoot);
 
+    this._attachInputHandlers(el, id);
     DragHandler.attach(el, id);
     PortHandler.attach(el, id);
   },
 
+  _attachInputHandlers(el: HTMLElement, nodeId: string): void {
+    // Delegated inputs remove global inline mutations and make state updates testable.
+    const nodeNameInput = el.querySelector<HTMLInputElement>('input.node-name');
+    if (nodeNameInput) {
+      nodeNameInput.onchange = () => {
+        State.setNodeName(nodeId, nodeNameInput.value);
+      };
+    }
+
+    el.querySelectorAll<HTMLInputElement>('input.prop-name').forEach(input => {
+      input.onchange = () => {
+        const propIdx = Number(input.dataset['propIdx']);
+        if (Number.isNaN(propIdx)) return;
+        State.setPropName(nodeId, propIdx, input.value);
+      };
+    });
+
+    el.querySelectorAll<HTMLSelectElement>('select.prop-type').forEach(select => {
+      select.onchange = () => {
+        const propIdx = Number(select.dataset['propIdx']);
+        if (Number.isNaN(propIdx)) return;
+        this.changePropType(nodeId, propIdx, select.value as PropType);
+      };
+    });
+
+    el.querySelectorAll<HTMLInputElement>('input.prop-required').forEach(input => {
+      input.onchange = () => {
+        const propIdx = Number(input.dataset['propIdx']);
+        if (Number.isNaN(propIdx)) return;
+        State.setPropRequired(nodeId, propIdx, input.checked);
+      };
+    });
+  },
+
   _headerHTML(id: string, name: string, type: PropType, isRoot: boolean): string {
-    const portIn = (isRoot || IS_PRIMITIVE(type)) ? '' : `<div class="port-in" data-node="${id}"></div>`;
-    const portOut = isRoot ? '' : `<div class="port-out" data-node="${id}"></div>`;
-    const delBtn = isRoot ? '' : `<button class="btn-delete-node" onclick="NodeManager.delete('${id}')">×</button>`;
-    const ro = isRoot ? 'readonly' : '';
+    const behavior = getNodeBehavior(id, type);
+    const portIn = behavior.canHaveHeaderInPort ? `<div class="port-in" data-node="${id}"></div>` : '';
+    const portOut = behavior.canHaveHeaderOutPort ? `<div class="port-out" data-node="${id}"></div>` : '';
+    const delBtn = behavior.canDeleteNode
+      ? `<button class="btn-delete-node" onclick="NodeManager.delete('${id}')">×</button>`
+      : '';
+    const ro = behavior.canEditName ? '' : 'readonly';
     return `
       <div class="node-header">
         ${portIn}
         <span class="badge badge-${isRoot ? 'root' : type}">${isRoot ? 'root' : type}</span>
-        <input class="node-name" value="${name}" ${ro}
-          onchange="State.nodes['${id}'].name = this.value; SchemaOutput.update()">
+        <input class="node-name" value="${name}" ${ro}>
         ${delBtn}
         ${portOut}
       </div>`;
@@ -106,9 +130,11 @@ export const NodeManager = {
     props: Array<{ name: string; type: PropType; _ref?: string | null }>,
     isRoot: boolean,
   ): string {
-    const hasProps = IS_STRUCTURE(type);
+    const behavior = getNodeBehavior(nodeId, type);
+    const hasProps = behavior.canAddProp;
     const rows = props.map((p, i) => this._propRowHTML(type, nodeId, p, i, isRoot)).join('');
     const addBtn = hasProps
+      // TODO: migrate this inline action button to delegated events with a command map.
       ? `<button class="btn-add-prop" onclick="NodeManager.addProp('${nodeId}')">+ add property</button>`
       : '';
     return `<div class="node-body">${rows}</div>${addBtn}`;
@@ -125,11 +151,13 @@ export const NodeManager = {
       `<option${prop.type === t ? ' selected' : ''}>${t}</option>`,
     ).join('');
 
-    const portIn = (!isRoot && IS_STRUCTURE(nodeType))
+    const behavior = getNodeBehavior(nodeId, nodeType);
+
+    const portIn = behavior.canHavePropInPort
       ? `<div class="port-in" data-node="${nodeId}" data-prop="${idx}"></div>`
       : '';
 
-    const portOut = IS_STRUCTURE(prop.type)
+    const portOut = canPropHaveOutPort(prop.type)
       ? `<div class="port-out" data-node="${nodeId}" data-prop="${idx}"></div>`
       : '';
 
@@ -138,17 +166,15 @@ export const NodeManager = {
     return `
       <div class="prop-row" id="prop-${nodeId}-${idx}">
         ${portIn}
-        <input class="prop-name" value="${prop.name}"
-          onchange="State.nodes['${nodeId}'].props[${idx}].name = this.value; SchemaOutput.update()">
-        <select class="prop-type"
-          onchange="NodeManager.changePropType('${nodeId}', ${idx}, this.value)">
+        <input class="prop-name" value="${prop.name}" data-prop-idx="${idx}">
+        <select class="prop-type" data-prop-idx="${idx}">
           ${typeOptions}
         </select>
         <label class="prop-required">
-          <input type="checkbox" ${requiredChecked}
-            onchange="State.nodes['${nodeId}'].props[${idx}].required = this.checked; SchemaOutput.update()">
+          <input class="prop-required" type="checkbox" ${requiredChecked} data-prop-idx="${idx}">
           <small>Required</small>
         </label>
+        <!-- TODO: migrate this destructive inline action to delegated events. -->
         <button class="btn-delete-prop" onclick="NodeManager.deleteProp('${nodeId}', ${idx})">×</button>
         ${portOut}
       </div>`;

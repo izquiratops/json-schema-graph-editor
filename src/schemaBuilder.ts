@@ -1,4 +1,5 @@
 import { State } from './state';
+import { EdgeRefs } from './edgeRefs';
 
 export interface JsonSchema {
   type?: string;
@@ -20,9 +21,10 @@ export const SchemaBuilder = {
     if (n.type === 'object') {
       const properties: Record<string, JsonSchema> = {};
       const required: string[] = [];
-      n.props.forEach(p => {
-        properties[p.name] = (p._ref && State.nodes[p._ref])
-          ? this.build(p._ref, new Set(visited))
+      n.props.forEach((p, idx) => {
+        const refNodeId = EdgeRefs.getRefForProp(State.nodes, State.edges, nodeId, idx);
+        properties[p.name] = (refNodeId && State.nodes[refNodeId])
+          ? this.build(refNodeId, new Set(visited))
           : { type: p.type };
         if (p.required) required.push(p.name);
       });
@@ -32,8 +34,9 @@ export const SchemaBuilder = {
 
     if (n.type === 'array' && n.props.length > 0) {
       const p = n.props[0]!;
-      schema.items = (p._ref && State.nodes[p._ref])
-        ? this.build(p._ref, new Set(visited))
+      const refNodeId = EdgeRefs.getRefForProp(State.nodes, State.edges, nodeId, 0);
+      schema.items = (refNodeId && State.nodes[refNodeId])
+        ? this.build(refNodeId, new Set(visited))
         : { type: p.type };
     }
 

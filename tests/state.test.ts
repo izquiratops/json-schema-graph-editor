@@ -208,3 +208,44 @@ describe('State.shiftEdgePropIndices', () => {
     assert.equal(State.edges[0]!.fromProp, 5);
   });
 });
+
+describe('State change events', () => {
+  it('emits node and prop update events for explicit mutation helpers', () => {
+    addNode('a', 'object', [{ name: 'field', type: 'string', required: false }]);
+    const events: string[] = [];
+    const unsubscribe = State.onChange(event => {
+      events.push(event.type);
+    });
+
+    State.setNodeName('a', 'renamed');
+    State.setPropName('a', 0, 'newField');
+    State.setPropRequired('a', 0, true);
+
+    unsubscribe();
+
+    assert.deepEqual(events, ['nodeUpdated', 'propUpdated', 'propUpdated']);
+  });
+
+  it('emits edge lifecycle events on add/remove/reindex', () => {
+    addNode('a', 'object', [
+      { name: 'first', type: 'object' },
+      { name: 'second', type: 'object' },
+    ]);
+    addNode('b', 'object');
+    addNode('c', 'object');
+
+    const events: string[] = [];
+    const unsubscribe = State.onChange(event => {
+      events.push(event.type);
+    });
+
+    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
+    State.removeEdgeFromProp('a', 0);
+    State.addEdge({ fromNode: 'a', fromProp: 1, toNode: 'c' });
+    State.shiftEdgePropIndices('a', 0);
+
+    unsubscribe();
+
+    assert.deepEqual(events, ['edgeAdded', 'edgesRemoved', 'edgeAdded', 'edgesReindexed']);
+  });
+});

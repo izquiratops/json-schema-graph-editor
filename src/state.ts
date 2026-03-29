@@ -1,11 +1,29 @@
-import { IS_PRIMITIVE } from './constants';
 import type { SchemaNode, Edge } from './types';
+import { EdgeRefs } from './edgeRefs';
 
 const _state = {
   nodes: {} as Record<string, SchemaNode>,
   edges: [] as Edge[],
   _nextId: 0,
 };
+
+export type StateChangeEvent =
+  | { type: 'nodeAdded'; nodeId: string }
+  | { type: 'nodeRemoved'; nodeId: string }
+  | { type: 'nodeUpdated'; nodeId: string }
+  | { type: 'propUpdated'; nodeId: string; propIdx: number }
+  | { type: 'edgeAdded'; edge: Edge }
+  | { type: 'edgesRemoved'; edges: Edge[] }
+  | { type: 'edgesReindexed'; nodeId: string; deletedIdx: number }
+  | { type: 'stateReset' };
+
+type StateChangeListener = (event: StateChangeEvent) => void;
+
+const listeners = new Set<StateChangeListener>();
+
+function emitChange(event: StateChangeEvent): void {
+  listeners.forEach(listener => listener(event));
+}
 
 function hasPropIndex(propIdx: number | undefined): propIdx is number {
   return propIdx !== undefined;
@@ -23,28 +41,6 @@ function getProp(nodeId: string, propIdx: number) {
   return prop;
 }
 
-function clearEdgeRef(edge: Edge): void {
-  if (hasPropIndex(edge.fromProp) && !hasPropIndex(edge.toProp)) {
-    const prop = _state.nodes[edge.fromNode]?.props[edge.fromProp];
-    if (prop) prop._ref = null;
-  }
-
-  if (!hasPropIndex(edge.fromProp) && hasPropIndex(edge.toProp)) {
-    const prop = _state.nodes[edge.toNode]?.props[edge.toProp];
-    if (prop) prop._ref = null;
-  }
-}
-
-function applyEdgeRef(edge: Edge): void {
-  if (hasPropIndex(edge.fromProp) && !hasPropIndex(edge.toProp)) {
-    getProp(edge.fromNode, edge.fromProp)._ref = edge.toNode;
-  }
-
-  if (!hasPropIndex(edge.fromProp) && hasPropIndex(edge.toProp)) {
-    getProp(edge.toNode, edge.toProp)._ref = edge.fromNode;
-  }
-}
-
 function sameSourcePort(left: Edge, right: Edge): boolean {
   return left.fromNode === right.fromNode && left.fromProp === right.fromProp;
 }
@@ -55,8 +51,9 @@ function sameTargetPort(left: Edge, right: Edge): boolean {
 
 function removeEdges(predicate: (edge: Edge) => boolean): void {
   const removed = _state.edges.filter(predicate);
-  removed.forEach(clearEdgeRef);
+  removed.forEach(edge => EdgeRefs.clearEdgeRef(_state.nodes, edge));
   _state.edges = _state.edges.filter(edge => !predicate(edge));
+  if (removed.length > 0) emitChange({ type: 'edgesRemoved', edges: removed });
 }
 
 export const State = {
@@ -65,10 +62,57 @@ export const State = {
   get _nextId() { return _state._nextId; },
   set _nextId(v: number) { _state._nextId = v; },
 
+  onChange(listener: StateChangeListener): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  },
+
+  offChange(listener: StateChangeListener): void {
+    listeners.delete(listener);
+  },
+
   uid(): string { return 'n' + (++_state._nextId); },
 
-  addNode(node: SchemaNode): void { _state.nodes[node.id] = node; },
-  removeNode(id: string): void    { delete _state.nodes[id]; },
+  addNode(node: SchemaNode): void {
+    _state.nodes[node.id] = node;
+    emitChange({ type: 'nodeAdded', nodeId: node.id });
+  },
+
+  removeNode(id: string): void {
+    delete _state.nodes[id];
+    emitChange({ type: 'nodeRemoved', nodeId: id });
+  },
+
+  setNodeName(nodeId: string, name: string): void {
+    getNode(nodeId).name = name;
+    emitChange({ type: 'nodeUpdated', nodeId });
+  },
+
+  setPropName(nodeId: string, propIdx: number, name: string): void {
+    getProp(nodeId, propIdx).name = name;
+    emitChange({ type: 'propUpdated', nodeId, propIdx });
+  },
+
+  addProp(nodeId: string, prop: SchemaNode['props'][number]): void {
+    getNode(nodeId).props.push(prop);
+    emitChange({ type: 'nodeUpdated', nodeId });
+  },
+
+  removeProp(nodeId: string, propIdx: number): void {
+    const node = getNode(nodeId);
+    node.props.splice(propIdx, 1);
+    emitChange({ type: 'nodeUpdated', nodeId });
+  },
+
+  setPropRequired(nodeId: string, propIdx: number, required: boolean): void {
+    getProp(nodeId, propIdx).required = required;
+    emitChange({ type: 'propUpdated', nodeId, propIdx });
+  },
+
+  setPropType(nodeId: string, propIdx: number, type: SchemaNode['props'][number]['type']): void {
+    getProp(nodeId, propIdx).type = type;
+    emitChange({ type: 'propUpdated', nodeId, propIdx });
+  },
 
   addEdge(edge: Edge): void {
     const hasFromProp = hasPropIndex(edge.fromProp);
@@ -96,7 +140,8 @@ export const State = {
     // this restriction should be lifted for props that belong to those types.
     removeEdges(existing => sameSourcePort(existing, edge));
     _state.edges.push(edge);
-    applyEdgeRef(edge);
+    EdgeRefs.applyEdgeRef(_state.nodes, edge);
+    emitChange({ type: 'edgeAdded', edge });
   },
 
   removeEdgesOf(nodeId: string): void {
@@ -122,6 +167,8 @@ export const State = {
           : e.toProp,
       }),
     );
+    EdgeRefs.syncRefsFromEdges(_state.nodes, _state.edges);
+    emitChange({ type: 'edgesReindexed', nodeId, deletedIdx });
   },
 
   /** Reset to empty — used in tests. */
@@ -129,5 +176,6 @@ export const State = {
     _state.nodes = {};
     _state.edges = [];
     _state._nextId = 0;
+    emitChange({ type: 'stateReset' });
   },
 };

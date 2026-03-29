@@ -1,6 +1,5 @@
 import { State } from './state';
 import { EdgeRenderer } from './edgeRenderer';
-import { SchemaOutput } from './schemaOutput';
 
 interface Preview {
   fromNode: string;
@@ -45,7 +44,6 @@ export const PortHandler = {
         }
         this._preview = null;
         EdgeRenderer.render();
-        SchemaOutput.update();
       };
     });
   },
