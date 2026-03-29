@@ -3,7 +3,6 @@ export type PropType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 
 export interface Prop {
   name: string;
   type: PropType;
-  _ref?: string | null;
   required?: boolean;
 }
 

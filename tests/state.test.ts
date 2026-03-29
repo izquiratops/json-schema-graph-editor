@@ -2,6 +2,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { State } from '../src/state';
+import { EdgeRefs } from '../src/edgeRefs';
 import type { Prop, PropType } from '../src/types';
 
 beforeEach(() => State._reset());
@@ -33,20 +34,20 @@ describe('State.addNode / removeNode', () => {
 });
 
 describe('State.addEdge', () => {
-  it('adds a prop-to-node edge and syncs the source prop ref', () => {
+  it('adds a prop-to-node edge and resolves the source prop ref from edges', () => {
     addNode('a', 'object', [{ name: 'child', type: 'object' }]);
     addNode('b', 'object');
     State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
     assert.equal(State.edges.length, 1);
-    assert.equal(State.nodes['a']!.props[0]!._ref, 'b');
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), 'b');
   });
 
-  it('adds a node-to-prop edge and syncs the target prop ref', () => {
+  it('adds a node-to-prop edge and resolves the target prop ref from edges', () => {
     addNode('s', 'string');
     addNode('o', 'object', [{ name: 'title', type: 'string' }]);
     State.addEdge({ fromNode: 's', toNode: 'o', toProp: 0 });
     assert.equal(State.edges.length, 1);
-    assert.equal(State.nodes['o']!.props[0]!._ref, 's');
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'o', 0), 's');
   });
 
   it('replaces the previous incoming edge for the same target port', () => {
@@ -57,7 +58,7 @@ describe('State.addEdge', () => {
     State.addEdge({ fromNode: 's2', toNode: 'o', toProp: 0 });
     assert.equal(State.edges.length, 1);
     assert.equal(State.edges[0]!.fromNode, 's2');
-    assert.equal(State.nodes['o']!.props[0]!._ref, 's2');
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'o', 0), 's2');
   });
 
   it('replaces the previous outgoing edge for the same source port', () => {
@@ -68,7 +69,7 @@ describe('State.addEdge', () => {
     State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'c' });
     assert.equal(State.edges.length, 1);
     assert.equal(State.edges[0]!.toNode, 'c');
-    assert.equal(State.nodes['a']!.props[0]!._ref, 'c');
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), 'c');
   });
 
   it('allows multiple edges across different ports', () => {
@@ -105,8 +106,8 @@ describe('State.removeEdgesOf', () => {
     State.addEdge({ fromNode: 'a', fromProp: 1, toNode: 'c' });
     State.removeEdgesOf('a');
     assert.equal(State.edges.length, 0);
-    assert.equal(State.nodes['a']!.props[0]!._ref, null);
-    assert.equal(State.nodes['a']!.props[1]!._ref, null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 1), null);
   });
 
   it('removes edges where node is the target', () => {
@@ -115,7 +116,7 @@ describe('State.removeEdgesOf', () => {
     State.addEdge({ fromNode: 'x', fromProp: 0, toNode: 'a' });
     State.removeEdgesOf('a');
     assert.equal(State.edges.length, 0);
-    assert.equal(State.nodes['x']!.props[0]!._ref, null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'x', 0), null);
   });
 
   it('leaves edges that do not involve the node', () => {
@@ -144,7 +145,7 @@ describe('State.removeEdgeFromProp', () => {
     State.removeEdgeFromProp('a', 0);
     assert.equal(State.edges.length, 1);
     assert.equal(State.edges[0]!.fromProp, 1);
-    assert.equal(State.nodes['a']!.props[0]!._ref, null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), null);
   });
 
   it('removes a specific target prop edge', () => {
@@ -156,7 +157,7 @@ describe('State.removeEdgeFromProp', () => {
     State.addEdge({ fromNode: 's', toNode: 'o', toProp: 0 });
     State.removeEdgeFromProp('o', 0);
     assert.equal(State.edges.length, 0);
-    assert.equal(State.nodes['o']!.props[0]!._ref, null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'o', 0), null);
   });
 
   it('does not remove edges from a different node', () => {

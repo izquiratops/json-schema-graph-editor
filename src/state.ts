@@ -1,5 +1,4 @@
 import type { SchemaNode, Edge } from './types';
-import { EdgeRefs } from './edgeRefs';
 
 const _state = {
   nodes: {} as Record<string, SchemaNode>,
@@ -51,7 +50,6 @@ function sameTargetPort(left: Edge, right: Edge): boolean {
 
 function removeEdges(predicate: (edge: Edge) => boolean): void {
   const removed = _state.edges.filter(predicate);
-  removed.forEach(edge => EdgeRefs.clearEdgeRef(_state.nodes, edge));
   _state.edges = _state.edges.filter(edge => !predicate(edge));
   if (removed.length > 0) emitChange({ type: 'edgesRemoved', edges: removed });
 }
@@ -140,7 +138,6 @@ export const State = {
     // this restriction should be lifted for props that belong to those types.
     removeEdges(existing => sameSourcePort(existing, edge));
     _state.edges.push(edge);
-    EdgeRefs.applyEdgeRef(_state.nodes, edge);
     emitChange({ type: 'edgeAdded', edge });
   },
 
@@ -167,7 +164,6 @@ export const State = {
           : e.toProp,
       }),
     );
-    EdgeRefs.syncRefsFromEdges(_state.nodes, _state.edges);
     emitChange({ type: 'edgesReindexed', nodeId, deletedIdx });
   },
 

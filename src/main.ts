@@ -1,4 +1,3 @@
-import type { PropType } from './types';
 import { State } from './state';
 import { NodeManager } from './nodeManager';
 import { DragHandler } from './dragHandler';
@@ -39,8 +38,8 @@ function initDemo(): void {
       { name: 'id',      type: 'string'  },
       { name: 'age',     type: 'number'  },
       { name: 'active',  type: 'boolean' },
-      { name: 'address', type: 'object',  _ref: 'n2' },
-    ] as Array<{ name: string; type: PropType; _ref?: string }>,
+      { name: 'address', type: 'object' },
+    ],
   });
   State._nextId = 1;
 

@@ -23,9 +23,6 @@ export const NodeManager = {
 
   delete(id: string): void {
     State.removeEdgesOf(id);
-    Object.values(State.nodes).forEach(n =>
-      n.props.forEach(p => { if (p._ref === id) p._ref = null; }),
-    );
     document.getElementById('node-' + id)?.remove();
     State.removeNode(id);
   },
@@ -45,7 +42,6 @@ export const NodeManager = {
     if (prop.type === newType) return;
 
     State.setPropType(nodeId, propIdx, newType);
-    prop._ref = null;
     State.removeEdgeFromProp(nodeId, propIdx);
   },
 
@@ -68,6 +64,7 @@ export const NodeManager = {
     el.innerHTML = this._headerHTML(n.id, n.name, n.type as PropType, isRoot) + this._bodyHTML(id, n.type as PropType, n.props, isRoot);
 
     this._attachInputHandlers(el, id);
+    this._attachActionHandlers(el, id);
     DragHandler.attach(el, id);
     PortHandler.attach(el, id);
   },
@@ -106,12 +103,37 @@ export const NodeManager = {
     });
   },
 
+  _attachActionHandlers(el: HTMLElement, nodeId: string): void {
+    // Action delegation replaces remaining inline buttons with explicit command routing.
+    const deleteNodeButton = el.querySelector<HTMLButtonElement>('button[data-action="delete-node"]');
+    if (deleteNodeButton) {
+      deleteNodeButton.onclick = () => {
+        this.delete(nodeId);
+      };
+    }
+
+    const addPropButton = el.querySelector<HTMLButtonElement>('button[data-action="add-prop"]');
+    if (addPropButton) {
+      addPropButton.onclick = () => {
+        this.addProp(nodeId);
+      };
+    }
+
+    el.querySelectorAll<HTMLButtonElement>('button[data-action="delete-prop"]').forEach(button => {
+      button.onclick = () => {
+        const propIdx = Number(button.dataset['propIdx']);
+        if (Number.isNaN(propIdx)) return;
+        this.deleteProp(nodeId, propIdx);
+      };
+    });
+  },
+
   _headerHTML(id: string, name: string, type: PropType, isRoot: boolean): string {
     const behavior = getNodeBehavior(id, type);
     const portIn = behavior.canHaveHeaderInPort ? `<div class="port-in" data-node="${id}"></div>` : '';
     const portOut = behavior.canHaveHeaderOutPort ? `<div class="port-out" data-node="${id}"></div>` : '';
     const delBtn = behavior.canDeleteNode
-      ? `<button class="btn-delete-node" onclick="NodeManager.delete('${id}')">×</button>`
+      ? `<button class="btn-delete-node" data-action="delete-node">×</button>`
       : '';
     const ro = behavior.canEditName ? '' : 'readonly';
     return `
@@ -127,15 +149,14 @@ export const NodeManager = {
   _bodyHTML(
     nodeId: string,
     type: PropType,
-    props: Array<{ name: string; type: PropType; _ref?: string | null }>,
+    props: Array<{ name: string; type: PropType }>,
     isRoot: boolean,
   ): string {
     const behavior = getNodeBehavior(nodeId, type);
     const hasProps = behavior.canAddProp;
     const rows = props.map((p, i) => this._propRowHTML(type, nodeId, p, i, isRoot)).join('');
     const addBtn = hasProps
-      // TODO: migrate this inline action button to delegated events with a command map.
-      ? `<button class="btn-add-prop" onclick="NodeManager.addProp('${nodeId}')">+ add property</button>`
+      ? `<button class="btn-add-prop" data-action="add-prop">+ add property</button>`
       : '';
     return `<div class="node-body">${rows}</div>${addBtn}`;
   },
@@ -174,8 +195,7 @@ export const NodeManager = {
           <input class="prop-required" type="checkbox" ${requiredChecked} data-prop-idx="${idx}">
           <small>Required</small>
         </label>
-        <!-- TODO: migrate this destructive inline action to delegated events. -->
-        <button class="btn-delete-prop" onclick="NodeManager.deleteProp('${nodeId}', ${idx})">×</button>
+        <button class="btn-delete-prop" data-action="delete-prop" data-prop-idx="${idx}">×</button>
         ${portOut}
       </div>`;
   },

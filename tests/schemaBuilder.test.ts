@@ -9,7 +9,7 @@ beforeEach(() => State._reset());
 function addNode(
   id: string,
   type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' | 'integer',
-  props: Array<{ name: string; type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' | 'integer'; _ref?: string }> = [],
+  props: Array<{ name: string; type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' | 'integer' }> = [],
 ) {
   State.addNode({ id, type, name: id, props, x: 0, y: 0 });
 }
@@ -42,9 +42,10 @@ describe('SchemaBuilder.build — object', () => {
     assert.equal('properties' in schema, false);
   });
 
-  it('resolves _ref to a nested schema', () => {
-    addNode('root', 'object', [{ name: 'addr', type: 'object', _ref: 'n1' }]);
+  it('resolves nested schema from a prop-to-node connection', () => {
+    addNode('root', 'object', [{ name: 'addr', type: 'object' }]);
     addNode('n1', 'object', [{ name: 'city', type: 'string' }]);
+    State.addEdge({ fromNode: 'root', fromProp: 0, toNode: 'n1' });
     assert.deepEqual(SchemaBuilder.build('root'), {
       type: 'object',
       properties: {
@@ -56,8 +57,8 @@ describe('SchemaBuilder.build — object', () => {
     });
   });
 
-  it('falls back to { type } when _ref points to a missing node', () => {
-    addNode('root', 'object', [{ name: 'x', type: 'object', _ref: 'missing' }]);
+  it('falls back to { type } when no edge exists for a structure prop', () => {
+    addNode('root', 'object', [{ name: 'x', type: 'object' }]);
     assert.deepEqual(SchemaBuilder.build('root'), {
       type: 'object',
       properties: { x: { type: 'object' } },
@@ -89,9 +90,10 @@ describe('SchemaBuilder.build — array', () => {
     });
   });
 
-  it('resolves _ref in items to a nested schema', () => {
-    addNode('root', 'array', [{ name: 'items', type: 'object', _ref: 'n1' }]);
+  it('resolves items from a prop-to-node connection', () => {
+    addNode('root', 'array', [{ name: 'items', type: 'object' }]);
     addNode('n1', 'object', [{ name: 'val', type: 'number' }]);
+    State.addEdge({ fromNode: 'root', fromProp: 0, toNode: 'n1' });
     assert.deepEqual(SchemaBuilder.build('root'), {
       type: 'array',
       items: {
@@ -110,15 +112,17 @@ describe('SchemaBuilder.build — array', () => {
 
 describe('SchemaBuilder.build — circular references', () => {
   it('returns {} when a node is visited twice (cycle guard)', () => {
-    // root.prop._ref = root  →  direct self-cycle
-    addNode('root', 'object', [{ name: 'self', type: 'object', _ref: 'root' }]);
+    addNode('root', 'object', [{ name: 'self', type: 'object' }]);
+    State.addEdge({ fromNode: 'root', fromProp: 0, toNode: 'root' });
     const schema = SchemaBuilder.build('root');
     assert.deepEqual(schema.properties!['self'], {});
   });
 
   it('handles mutual cycles between two nodes gracefully', () => {
-    addNode('a', 'object', [{ name: 'b', type: 'object', _ref: 'b' }]);
-    addNode('b', 'object', [{ name: 'a', type: 'object', _ref: 'a' }]);
+    addNode('a', 'object', [{ name: 'b', type: 'object' }]);
+    addNode('b', 'object', [{ name: 'a', type: 'object' }]);
+    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
+    State.addEdge({ fromNode: 'b', fromProp: 0, toNode: 'a' });
     // Should not throw or infinite-loop
     assert.doesNotThrow(() => SchemaBuilder.build('a'));
   });
