@@ -1,23 +1,27 @@
-import type { PropType } from './types';
+import type { ArrayItemsKeyword, Prop, PropType, SchemaNode } from './types';
 import { PROP_TYPES } from './constants';
 import { getNodeBehavior, canPropHaveOutPort } from './nodeBehavior';
 import { State } from './state';
 import { DragHandler } from './dragHandler';
 import { PortHandler } from './portHandler';
 
+// TODO: This file is getting too big
+
 export const NodeManager = {
   add(type: PropType, x?: number, y?: number): void {
     const id = State.uid();
-    const node = {
+    const node: SchemaNode = {
       id,
       type,
-      name: type + '_' + (id.slice(1)),
-      props: [] as { name: string; type: PropType; required?: boolean }[],
+      title: type + '_' + (id.slice(1)),
+      description: '',
+      props: [] as Prop[],
+      items: undefined,
       x: x ?? 60 + Math.random() * 220,
       y: y ?? 80 + Math.random() * 160,
     };
     if (type === 'object') node.props = [{ name: 'field1', type: 'string', required: false }];
-    if (type === 'array') node.props = [{ name: 'items', type: 'string', required: false }];
+    if (type === 'array') node.items = { type: 'string' };
     State.addNode(node);
   },
 
@@ -45,10 +49,17 @@ export const NodeManager = {
     State.removeEdgeFromProp(nodeId, propIdx);
   },
 
+  changeArrayItemType(nodeId: string, newType: PropType): void {
+    const node = State.nodes[nodeId]!;
+    if (node.type !== 'array' || !node.items || node.items.type === newType) return;
+
+    State.setArrayItemType(nodeId, newType);
+    State.removeEdgeFromProp(nodeId, 0);
+  },
+
   render(id: string): void {
     const n = State.nodes[id]!;
     const behavior = getNodeBehavior(n.id, n.type as PropType);
-    const isRoot = behavior.nodeKind === 'root';
 
     let el = document.getElementById('node-' + id);
     if (!el) {
@@ -61,7 +72,8 @@ export const NodeManager = {
     el.style.left = n.x + 'px';
     el.style.top = n.y + 'px';
 
-    el.innerHTML = this._headerHTML(n.id, n.name, n.type as PropType, isRoot) + this._bodyHTML(id, n.type as PropType, n.props, isRoot);
+    el.innerHTML = this._headerHTML(n.id, n.title, n.type as PropType, behavior.isRoot)
+      + this._bodyHTML(n);
 
     this._attachInputHandlers(el, id);
     this._attachActionHandlers(el, id);
@@ -71,10 +83,24 @@ export const NodeManager = {
 
   _attachInputHandlers(el: HTMLElement, nodeId: string): void {
     // Delegated inputs remove global inline mutations and make state updates testable.
-    const nodeNameInput = el.querySelector<HTMLInputElement>('input.node-name');
-    if (nodeNameInput) {
-      nodeNameInput.onchange = () => {
-        State.setNodeName(nodeId, nodeNameInput.value);
+    const nodeTitleInput = el.querySelector<HTMLInputElement>('input.node-title');
+    if (nodeTitleInput) {
+      nodeTitleInput.onchange = () => {
+        State.setNodeTitle(nodeId, nodeTitleInput.value);
+      };
+    }
+
+    const nodeDescriptionInput = el.querySelector<HTMLInputElement>('input.node-description');
+    if (nodeDescriptionInput) {
+      nodeDescriptionInput.onchange = () => {
+        State.setNodeDescription(nodeId, nodeDescriptionInput.value);
+      };
+    }
+
+    const arrayItemSelect = el.querySelector<HTMLSelectElement>('select.array-item-type');
+    if (arrayItemSelect) {
+      arrayItemSelect.onchange = () => {
+        this.changeArrayItemType(nodeId, arrayItemSelect.value as PropType);
       };
     }
 
@@ -128,37 +154,62 @@ export const NodeManager = {
     });
   },
 
-  _headerHTML(id: string, name: string, type: PropType, isRoot: boolean): string {
+  _headerHTML(id: string, title: string, type: PropType, isRoot: boolean): string {
     const behavior = getNodeBehavior(id, type);
     const portIn = behavior.canHaveHeaderInPort ? `<div class="port-in" data-node="${id}"></div>` : '';
     const portOut = behavior.canHaveHeaderOutPort ? `<div class="port-out" data-node="${id}"></div>` : '';
     const delBtn = behavior.canDeleteNode
       ? `<button class="btn-delete-node" data-action="delete-node">×</button>`
       : '';
-    const ro = behavior.canEditName ? '' : 'readonly';
+    const ro = behavior.canEditTitle ? '' : 'readonly';
     return `
       <div class="node-header">
         ${portIn}
         <span class="badge badge-${isRoot ? 'root' : type}">${isRoot ? 'root' : type}</span>
-        <input class="node-name" value="${name}" ${ro}>
+        <input class="node-title" value="${this._escapeAttr(title)}" placeholder="title" ${ro}>
         ${delBtn}
         ${portOut}
       </div>`;
   },
 
-  _bodyHTML(
-    nodeId: string,
-    type: PropType,
-    props: Array<{ name: string; type: PropType }>,
-    isRoot: boolean,
-  ): string {
-    const behavior = getNodeBehavior(nodeId, type);
-    const hasProps = behavior.canAddProp;
-    const rows = props.map((p, i) => this._propRowHTML(type, nodeId, p, i, isRoot)).join('');
-    const addBtn = hasProps
+  _bodyHTML(node: SchemaNode): string {
+    const behavior = getNodeBehavior(node.id, node.type);
+    const descriptionRow = this._descriptionRowHTML(node.description);
+    const itemsRow = behavior.hasItemsKeyword && node.items
+      ? this._itemsRowHTML(node.id, node.items)
+      : '';
+    const propRows = node.props.map((prop, idx) => this._propRowHTML(node.type, node.id, prop, idx)).join('');
+    const addBtn = behavior.canAddProp
       ? `<button class="btn-add-prop" data-action="add-prop">+ add property</button>`
       : '';
-    return `<div class="node-body">${rows}</div>${addBtn}`;
+    return `<div class="node-body">${descriptionRow}${itemsRow}${propRows}</div>${addBtn}`;
+  },
+
+  _descriptionRowHTML(description: string): string {
+    return `
+      <label class="keyword-text-row">
+        <span class="keyword-label">description</span>
+        <input class="node-description" value="${this._escapeAttr(description)}" placeholder="description">
+      </label>`;
+  },
+
+  _itemsRowHTML(nodeId: string, items: ArrayItemsKeyword): string {
+    const typeOptions = PROP_TYPES.map(type =>
+      `<option${items.type === type ? ' selected' : ''}>${type}</option>`,
+    ).join('');
+    const behavior = getNodeBehavior(nodeId, 'array');
+    const portIn = behavior.canHavePropInPort
+      ? `<div class="port-in" data-node="${nodeId}" data-prop="0"></div>`
+      : '';
+
+    return `
+      <div class="prop-row keyword-row" id="prop-${nodeId}-0">
+        ${portIn}
+        <span class="keyword-label">items</span>
+        <select class="array-item-type" data-prop-idx="0">
+          ${typeOptions}
+        </select>
+      </div>`;
   },
 
   _propRowHTML(
@@ -166,7 +217,6 @@ export const NodeManager = {
     nodeId: string,
     prop: { name: string; type: PropType; required?: boolean },
     idx: number,
-    isRoot: boolean,
   ): string {
     const typeOptions = PROP_TYPES.map(t =>
       `<option${prop.type === t ? ' selected' : ''}>${t}</option>`,
@@ -187,7 +237,7 @@ export const NodeManager = {
     return `
       <div class="prop-row" id="prop-${nodeId}-${idx}">
         ${portIn}
-        <input class="prop-name" value="${prop.name}" data-prop-idx="${idx}">
+        <input class="prop-name" value="${this._escapeAttr(prop.name)}" data-prop-idx="${idx}">
         <select class="prop-type" data-prop-idx="${idx}">
           ${typeOptions}
         </select>
@@ -198,5 +248,13 @@ export const NodeManager = {
         <button class="btn-delete-prop" data-action="delete-prop" data-prop-idx="${idx}">×</button>
         ${portOut}
       </div>`;
+  },
+
+  _escapeAttr(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   },
 };

@@ -1,4 +1,6 @@
-import type { SchemaNode, Edge } from './types';
+import type { PropType, SchemaNode, Edge } from './types';
+
+// TODO: This file is getting too big
 
 const _state = {
   nodes: {} as Record<string, SchemaNode>,
@@ -35,9 +37,22 @@ function getNode(nodeId: string): SchemaNode {
 }
 
 function getProp(nodeId: string, propIdx: number) {
-  const prop = getNode(nodeId).props[propIdx];
+  const node = getNode(nodeId);
+  if (node.type !== 'object') throw new Error(`Node "${nodeId}" does not support properties.`);
+  const prop = node.props[propIdx];
   if (!prop) throw new Error(`Unknown prop: "${nodeId}[${propIdx}]".`);
   return prop;
+}
+
+function getPortType(nodeId: string, propIdx: number): PropType {
+  const node = getNode(nodeId);
+
+  if (node.type === 'array') {
+    if (propIdx !== 0 || !node.items) throw new Error(`Unknown items keyword: "${nodeId}[${propIdx}]".`);
+    return node.items.type;
+  }
+
+  return getProp(nodeId, propIdx).type;
 }
 
 function sameSourcePort(left: Edge, right: Edge): boolean {
@@ -72,7 +87,13 @@ export const State = {
   uid(): string { return 'n' + (++_state._nextId); },
 
   addNode(node: SchemaNode): void {
-    _state.nodes[node.id] = node;
+    _state.nodes[node.id] = {
+      ...node,
+      props: node.type === 'array' ? [] : node.props,
+      ...(node.type === 'array'
+        ? { items: node.items ?? { type: 'string' } }
+        : {}),
+    };
     emitChange({ type: 'nodeAdded', nodeId: node.id });
   },
 
@@ -81,8 +102,17 @@ export const State = {
     emitChange({ type: 'nodeRemoved', nodeId: id });
   },
 
+  setNodeTitle(nodeId: string, title: string): void {
+    getNode(nodeId).title = title;
+    emitChange({ type: 'nodeUpdated', nodeId });
+  },
+
   setNodeName(nodeId: string, name: string): void {
-    getNode(nodeId).name = name;
+    this.setNodeTitle(nodeId, name);
+  },
+
+  setNodeDescription(nodeId: string, description: string): void {
+    getNode(nodeId).description = description;
     emitChange({ type: 'nodeUpdated', nodeId });
   },
 
@@ -112,6 +142,13 @@ export const State = {
     emitChange({ type: 'propUpdated', nodeId, propIdx });
   },
 
+  setArrayItemType(nodeId: string, type: PropType): void {
+    const node = getNode(nodeId);
+    if (node.type !== 'array' || !node.items) throw new Error(`Node "${nodeId}" does not support items.`);
+    node.items.type = type;
+    emitChange({ type: 'nodeUpdated', nodeId });
+  },
+
   addEdge(edge: Edge): void {
     const hasFromProp = hasPropIndex(edge.fromProp);
     const hasToProp = hasPropIndex(edge.toProp);
@@ -121,10 +158,10 @@ export const State = {
     }
 
     const sourceType = hasFromProp
-      ? getProp(edge.fromNode, edge.fromProp as number).type
+      ? getPortType(edge.fromNode, edge.fromProp as number)
       : getNode(edge.fromNode).type;
     const targetType = hasToProp
-      ? getProp(edge.toNode, edge.toProp as number).type
+      ? getPortType(edge.toNode, edge.toProp as number)
       : getNode(edge.toNode).type;
 
     if (sourceType !== targetType) {

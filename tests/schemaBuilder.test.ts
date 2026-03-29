@@ -3,21 +3,41 @@ import assert from 'node:assert/strict';
 
 import { State } from '../src/state';
 import { SchemaBuilder } from '../src/schemaBuilder';
+import type { Prop, PropType } from '../src/types';
 
 beforeEach(() => State._reset());
 
 function addNode(
   id: string,
-  type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' | 'integer',
-  props: Array<{ name: string; type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' | 'integer' }> = [],
+  type: PropType,
+  props: Prop[] = [],
+  options: { title?: string; description?: string } = {},
 ) {
-  State.addNode({ id, type, name: id, props, x: 0, y: 0 });
+  State.addNode({
+    id,
+    type,
+    title: options.title ?? '',
+    description: options.description ?? '',
+    props: type === 'array' ? [] : props,
+    items: type === 'array' ? { type: props[0]?.type ?? 'string' } : undefined,
+    x: 0,
+    y: 0,
+  });
 }
 
 describe('SchemaBuilder.build — scalar node', () => {
   it('returns { type } for a non-object, non-array node', () => {
     addNode('root', 'string');
     assert.deepEqual(SchemaBuilder.build('root'), { type: 'string' });
+  });
+
+  it('includes shared title and description keywords when present', () => {
+    addNode('root', 'string', [], { title: 'SKU', description: 'Human-readable stock unit' });
+    assert.deepEqual(SchemaBuilder.build('root'), {
+      type: 'string',
+      title: 'SKU',
+      description: 'Human-readable stock unit',
+    });
   });
 });
 
@@ -104,9 +124,20 @@ describe('SchemaBuilder.build — array', () => {
   });
 
   it('omits items when props array is empty', () => {
-    addNode('root', 'array');
+    State.addNode({
+      id: 'root',
+      type: 'array',
+      title: '',
+      description: '',
+      props: [],
+      x: 0,
+      y: 0,
+    });
     const schema = SchemaBuilder.build('root');
-    assert.equal('items' in schema, false);
+    assert.deepEqual(schema, {
+      type: 'array',
+      items: { type: 'string' },
+    });
   });
 });
 

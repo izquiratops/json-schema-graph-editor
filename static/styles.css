@@ -226,7 +226,7 @@ button:hover {
 }
 
 /* Node name (editable) */
-.node-name {
+.node-title {
     flex: 1;
     background: transparent;
     border: none;
@@ -239,7 +239,7 @@ button:hover {
     min-width: 0;
 }
 
-.node-name:focus {
+.node-title:focus {
     cursor: text;
 }
 
@@ -262,6 +262,36 @@ button:hover {
     padding: 4px 0;
 }
 
+.keyword-text-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 10px;
+}
+
+.keyword-label {
+    color: var(--color-text-subtle);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.node-description {
+    width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 4px;
+    color: var(--color-text);
+    font-family: monospace;
+    font-size: 12px;
+    outline: none;
+    padding: 5px 6px;
+}
+
+.node-description:focus {
+    border-color: var(--color-blue);
+}
+
 .prop-row {
     display: flex;
     align-items: center;
@@ -274,6 +304,10 @@ button:hover {
     background: var(--color-border-subtle);
 }
 
+.keyword-row .keyword-label {
+    min-width: 36px;
+}
+
 .prop-name {
     width: 72px;
     background: transparent;
@@ -284,7 +318,8 @@ button:hover {
     font-family: monospace;
 }
 
-.prop-type {
+.prop-type,
+.array-item-type {
     font-size: 11px;
     padding: 1px 3px;
     background: var(--color-border-subtle);

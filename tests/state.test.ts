@@ -8,7 +8,16 @@ import type { Prop, PropType } from '../src/types';
 beforeEach(() => State._reset());
 
 function addNode(id: string, type: PropType, props: Prop[] = []) {
-  State.addNode({ id, type, name: id, props, x: 0, y: 0 });
+  State.addNode({
+    id,
+    type,
+    title: '',
+    description: '',
+    props: type === 'array' ? [] : props,
+    items: type === 'array' ? { type: props[0]?.type ?? 'string' } : undefined,
+    x: 0,
+    y: 0,
+  });
 }
 
 describe('State.uid', () => {
@@ -21,13 +30,21 @@ describe('State.uid', () => {
 
 describe('State.addNode / removeNode', () => {
   it('stores and retrieves a node', () => {
-    const node = { id: 'n1', type: 'object' as const, name: 'test', props: [], x: 0, y: 0 };
+    const node = {
+      id: 'n1',
+      type: 'object' as const,
+      title: 'test',
+      description: '',
+      props: [],
+      x: 0,
+      y: 0,
+    };
     State.addNode(node);
     assert.deepEqual(State.nodes['n1'], node);
   });
 
   it('removes a node', () => {
-    State.addNode({ id: 'n1', type: 'object' as const, name: 'test', props: [], x: 0, y: 0 });
+    State.addNode({ id: 'n1', type: 'object' as const, title: 'test', description: '', props: [], x: 0, y: 0 });
     State.removeNode('n1');
     assert.equal(State.nodes['n1'], undefined);
   });
@@ -218,13 +235,24 @@ describe('State change events', () => {
       events.push(event.type);
     });
 
-    State.setNodeName('a', 'renamed');
+    State.setNodeTitle('a', 'renamed');
+    State.setNodeDescription('a', 'Some description');
     State.setPropName('a', 0, 'newField');
     State.setPropRequired('a', 0, true);
 
     unsubscribe();
 
-    assert.deepEqual(events, ['nodeUpdated', 'propUpdated', 'propUpdated']);
+    assert.deepEqual(events, ['nodeUpdated', 'nodeUpdated', 'propUpdated', 'propUpdated']);
+  });
+
+  it('validates array item connections against the items keyword type', () => {
+    addNode('arr', 'array', [{ name: 'items', type: 'number' }]);
+    addNode('str', 'string');
+
+    assert.throws(
+      () => State.addEdge({ fromNode: 'str', toNode: 'arr', toProp: 0 }),
+      /Type mismatch/,
+    );
   });
 
   it('emits edge lifecycle events on add/remove/reindex', () => {

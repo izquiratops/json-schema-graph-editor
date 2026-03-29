@@ -25,9 +25,9 @@ export const SchemaOutput = {
 
   _highlight(json: string): string {
     return json
-      .replace(/("(?:[^\\"]|\\.)*")\s*:/g,       '<span class="hl-key">$1</span>:')
-      .replace(/:\s*("(?:[^\\"]|\\.)*")/g,        ': <span class="hl-str">$1</span>')
-      .replace(/:\s*(-?\d+\.?\d*)/g,              ': <span class="hl-num">$1</span>')
-      .replace(/:\s*(true|false|null)\b/g,         ': <span class="hl-bool">$1</span>');
+      .replace(/("(?:[^\\"]|\\.)*")\s*:/g, '<span class="hl-key">$1</span>:')
+      .replace(/:\s*("(?:[^\\"]|\\.)*")/g, ': <span class="hl-str">$1</span>')
+      .replace(/:\s*(-?\d+\.?\d*)/g,       ': <span class="hl-num">$1</span>')
+      .replace(/:\s*(true|false|null)\b/g, ': <span class="hl-bool">$1</span>');
   },
 };

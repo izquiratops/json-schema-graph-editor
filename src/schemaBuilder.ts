@@ -3,6 +3,8 @@ import { EdgeRefs } from './edgeRefs';
 
 export interface JsonSchema {
   type?: string;
+  title?: string;
+  description?: string;
   properties?: Record<string, JsonSchema>;
   required?: string[];
   items?: JsonSchema;
@@ -18,6 +20,10 @@ export const SchemaBuilder = {
 
     const schema: JsonSchema = { type: n.type };
 
+    if (n.title.trim().length > 0) schema.title = n.title;
+
+    if (n.description.trim().length > 0) schema.description = n.description;
+
     if (n.type === 'object') {
       const properties: Record<string, JsonSchema> = {};
       const required: string[] = [];
@@ -32,12 +38,11 @@ export const SchemaBuilder = {
       if (required.length > 0) schema.required = required;
     }
 
-    if (n.type === 'array' && n.props.length > 0) {
-      const p = n.props[0]!;
+    if (n.type === 'array' && n.items) {
       const refNodeId = EdgeRefs.getRefForProp(State.nodes, State.edges, nodeId, 0);
       schema.items = (refNodeId && State.nodes[refNodeId])
         ? this.build(refNodeId, new Set(visited))
-        : { type: p.type };
+        : { type: n.items.type };
     }
 
     return schema;

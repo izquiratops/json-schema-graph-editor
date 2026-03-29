@@ -32,7 +32,7 @@ startRenderCoordinator();
 
 function initDemo(): void {
   State.addNode({
-    id: 'root', type: 'object', name: 'root',
+    id: 'root', type: 'object', title: 'Person', description: 'A person record',
     x: 30, y: 80,
     props: [
       { name: 'id',      type: 'string'  },
@@ -44,7 +44,7 @@ function initDemo(): void {
   State._nextId = 1;
 
   State.addNode({
-    id: 'n2', type: 'object', name: 'address',
+    id: 'n2', type: 'object', title: 'Address', description: 'Mailing address',
     x: 290, y: 190,
     props: [
       { name: 'street', type: 'string' },

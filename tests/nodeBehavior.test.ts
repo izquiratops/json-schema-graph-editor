@@ -4,26 +4,29 @@ import assert from 'node:assert/strict';
 import { getNodeBehavior, canPropHaveOutPort } from '../src/nodeBehavior';
 
 describe('nodeBehavior registry', () => {
-  it('assigns root behavior by node id', () => {
+  it('keeps root constraints without overriding the underlying node kind', () => {
     const behavior = getNodeBehavior('root', 'object');
-    assert.equal(behavior.nodeKind, 'root');
-    assert.equal(behavior.canEditName, false);
+    assert.equal(behavior.nodeKind, 'object');
+    assert.equal(behavior.isRoot, true);
+    assert.equal(behavior.canEditTitle, true);
     assert.equal(behavior.canDeleteNode, false);
     assert.equal(behavior.canHaveHeaderInPort, false);
     assert.equal(behavior.canHaveHeaderOutPort, false);
-    assert.equal(behavior.canHavePropInPort, false);
+    assert.equal(behavior.canHavePropInPort, true);
     assert.equal(behavior.canAddProp, true);
   });
 
-  it('assigns structure behavior for object and array nodes', () => {
+  it('assigns distinct object and array behaviors', () => {
     const objectBehavior = getNodeBehavior('n1', 'object');
     const arrayBehavior = getNodeBehavior('n2', 'array');
 
-    assert.equal(objectBehavior.nodeKind, 'structure');
-    assert.equal(arrayBehavior.nodeKind, 'structure');
+    assert.equal(objectBehavior.nodeKind, 'object');
+    assert.equal(arrayBehavior.nodeKind, 'array');
     assert.equal(objectBehavior.canHaveHeaderInPort, true);
     assert.equal(arrayBehavior.canHaveHeaderOutPort, true);
     assert.equal(objectBehavior.canAddProp, true);
+    assert.equal(arrayBehavior.canAddProp, false);
+    assert.equal(arrayBehavior.hasItemsKeyword, true);
   });
 
   it('assigns primitive behavior to scalar nodes', () => {

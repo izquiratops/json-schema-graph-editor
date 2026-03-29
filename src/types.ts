@@ -6,11 +6,17 @@ export interface Prop {
   required?: boolean;
 }
 
+export interface ArrayItemsKeyword {
+  type: PropType;
+}
+
 export interface SchemaNode {
   id: string;
   type: PropType;
-  name: string;
+  title: string;
+  description: string;
   props: Prop[];
+  items?: ArrayItemsKeyword;
   x: number;
   y: number;
 }
