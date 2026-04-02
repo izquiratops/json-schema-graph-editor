@@ -1,6 +1,6 @@
-import type { PropType, SchemaNode, Edge } from './types';
+import type { PropType, SchemaNode, Edge } from '../domain/types';
+import { validateEdge } from '../domain/edgeValidation';
 
-// TODO: This file is getting too big
 
 const _state = {
   nodes: {} as Record<string, SchemaNode>,
@@ -42,17 +42,6 @@ function getProp(nodeId: string, propIdx: number) {
   const prop = node.props[propIdx];
   if (!prop) throw new Error(`Unknown prop: "${nodeId}[${propIdx}]".`);
   return prop;
-}
-
-function getPortType(nodeId: string, propIdx: number): PropType {
-  const node = getNode(nodeId);
-
-  if (node.type === 'array') {
-    if (propIdx !== 0 || !node.items) throw new Error(`Unknown items keyword: "${nodeId}[${propIdx}]".`);
-    return node.items.type;
-  }
-
-  return getProp(nodeId, propIdx).type;
 }
 
 function sameSourcePort(left: Edge, right: Edge): boolean {
@@ -150,25 +139,7 @@ export const State = {
   },
 
   addEdge(edge: Edge): void {
-    const hasFromProp = hasPropIndex(edge.fromProp);
-    const hasToProp = hasPropIndex(edge.toProp);
-
-    if (hasFromProp === hasToProp) {
-      throw new Error('Connections must link a node header to a prop row, or a prop row to a node header.');
-    }
-
-    const sourceType = hasFromProp
-      ? getPortType(edge.fromNode, edge.fromProp as number)
-      : getNode(edge.fromNode).type;
-    const targetType = hasToProp
-      ? getPortType(edge.toNode, edge.toProp as number)
-      : getNode(edge.toNode).type;
-
-    if (sourceType !== targetType) {
-      throw new Error(
-        `Type mismatch: source type "${sourceType}" is not compatible with target type "${targetType}".`,
-      );
-    }
+    validateEdge(_state.nodes, edge);
 
     removeEdges(existing => sameTargetPort(existing, edge));
     // One outgoing edge per output port. When anyOf/oneOf nodes are implemented,

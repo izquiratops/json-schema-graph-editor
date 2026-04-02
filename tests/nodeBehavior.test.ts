@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getNodeBehavior, canPropHaveOutPort } from '../src/nodeBehavior';
+import { getNodeBehavior, canPropHaveOutPort } from '../src/domain/nodeBehavior';
 
 describe('nodeBehavior registry', () => {
   it('keeps root constraints without overriding the underlying node kind', () => {

@@ -1,9 +1,9 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { State } from '../src/state';
-import { EdgeRefs } from '../src/edgeRefs';
-import type { Prop, PropType } from '../src/types';
+import { State } from '../src/application/state';
+import { EdgeRefs } from '../src/domain/edgeRefs';
+import type { Prop, PropType } from '../src/domain/types';
 
 beforeEach(() => State._reset());
 

@@ -1,31 +1,44 @@
 import { State, type StateChangeEvent } from './state';
-import { NodeManager } from './nodeManager';
-import { EdgeRenderer } from './edgeRenderer';
-import { SchemaOutput } from './schemaOutput';
+
+export interface RenderCallbacks {
+  renderNode(nodeId: string): void;
+  removeNodeElement(nodeId: string): void;
+  renderEdges(): void;
+  updateSchemaOutput(): void;
+}
 
 interface PendingRender {
   nodeIds: Set<string>;
+  removeIds: Set<string>;
   redrawEdges: boolean;
   updateSchema: boolean;
   scheduled: boolean;
 }
 
+let callbacks: RenderCallbacks;
+
 const pending: PendingRender = {
   nodeIds: new Set<string>(),
+  removeIds: new Set<string>(),
   redrawEdges: false,
   updateSchema: false,
   scheduled: false,
 };
 
 function flush(): void {
-  pending.nodeIds.forEach(nodeId => {
-    if (State.nodes[nodeId]) NodeManager.render(nodeId);
+  pending.removeIds.forEach(nodeId => {
+    callbacks.removeNodeElement(nodeId);
   });
 
-  if (pending.redrawEdges) EdgeRenderer.render();
-  if (pending.updateSchema) SchemaOutput.update();
+  pending.nodeIds.forEach(nodeId => {
+    if (State.nodes[nodeId]) callbacks.renderNode(nodeId);
+  });
+
+  if (pending.redrawEdges) callbacks.renderEdges();
+  if (pending.updateSchema) callbacks.updateSchemaOutput();
 
   pending.nodeIds.clear();
+  pending.removeIds.clear();
   pending.redrawEdges = false;
   pending.updateSchema = false;
   pending.scheduled = false;
@@ -51,6 +64,7 @@ function onStateChange(event: StateChangeEvent): void {
   }
 
   if (event.type === 'nodeRemoved') {
+    pending.removeIds.add(event.nodeId);
     pending.redrawEdges = true;
     pending.updateSchema = true;
   }
@@ -68,6 +82,7 @@ function onStateChange(event: StateChangeEvent): void {
   scheduleFlush();
 }
 
-export function startRenderCoordinator(): () => void {
+export function startRenderCoordinator(cb: RenderCallbacks): () => void {
+  callbacks = cb;
   return State.onChange(onStateChange);
 }

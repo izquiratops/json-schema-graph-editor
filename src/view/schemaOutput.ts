@@ -1,5 +1,5 @@
-import { State } from './state';
-import { SchemaBuilder } from './schemaBuilder';
+import { State } from '../application/state';
+import { buildSchema } from '../domain/schemaBuilder';
 
 export const SchemaOutput = {
   update(): void {
@@ -8,7 +8,7 @@ export const SchemaOutput = {
 
     const schema = {
       '$schema': 'https://json-schema.org/draft/2020-12/schema',
-      ...SchemaBuilder.build('root'),
+      ...buildSchema(State.nodes, State.edges, 'root'),
     };
 
     pre.innerHTML = this._highlight(JSON.stringify(schema, null, 2));
@@ -18,7 +18,7 @@ export const SchemaOutput = {
     if (!State.nodes['root']) return;
     const schema = {
       '$schema': 'https://json-schema.org/draft/2020-12/schema',
-      ...SchemaBuilder.build('root'),
+      ...buildSchema(State.nodes, State.edges, 'root'),
     };
     navigator.clipboard?.writeText(JSON.stringify(schema, null, 2));
   },

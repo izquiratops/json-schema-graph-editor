@@ -1,20 +1,22 @@
-import { State } from './state';
-import { NodeManager } from './nodeManager';
-import { DragHandler } from './dragHandler';
-import { PortHandler } from './portHandler';
-import { SchemaOutput } from './schemaOutput';
-import { startRenderCoordinator } from './renderCoordinator';
+import { State } from './application/state';
+import { NodeCommands } from './application/nodeCommands';
+import { startRenderCoordinator } from './application/renderCoordinator';
+import { NodeRenderer } from './view/nodeRenderer';
+import { EdgeRenderer } from './view/edgeRenderer';
+import { DragHandler } from './view/dragHandler';
+import { PortHandler } from './view/portHandler';
+import { SchemaOutput } from './view/schemaOutput';
 
 // Expose to global scope for inline HTML onclick handlers
 declare global {
   interface Window {
-    NodeManager: typeof NodeManager;
+    NodeCommands: typeof NodeCommands;
     State: typeof State;
     SchemaOutput: typeof SchemaOutput;
   }
 }
 
-window.NodeManager  = NodeManager;
+window.NodeCommands = NodeCommands;
 window.State        = State;
 window.SchemaOutput = SchemaOutput;
 
@@ -28,7 +30,12 @@ document.addEventListener('mouseup', () => {
   PortHandler.onMouseUp();
 });
 
-startRenderCoordinator();
+startRenderCoordinator({
+  renderNode: (id) => NodeRenderer.render(id),
+  removeNodeElement: (id) => document.getElementById('node-' + id)?.remove(),
+  renderEdges: () => EdgeRenderer.render(),
+  updateSchemaOutput: () => SchemaOutput.update(),
+});
 
 function initDemo(): void {
   State.addNode({

@@ -1,5 +1,6 @@
-import { State } from './state';
+import { State } from '../application/state';
 import { EdgeRenderer } from './edgeRenderer';
+import { getCanvasWrapRect } from './domHelpers';
 
 export const DragHandler = {
   _dragging: null as string | null,
@@ -10,7 +11,7 @@ export const DragHandler = {
       e.preventDefault();
       this._dragging = id;
       const rect = el.getBoundingClientRect();
-      const wrap = document.getElementById('canvas-wrap')!.getBoundingClientRect();
+      const wrap = getCanvasWrapRect();
       this._offset = {
         x: e.clientX - (rect.left - wrap.left),
         y: e.clientY - (rect.top  - wrap.top),
@@ -26,7 +27,7 @@ export const DragHandler = {
 
   onMouseMove(e: MouseEvent): void {
     if (!this._dragging) return;
-    const wrap = document.getElementById('canvas-wrap')!.getBoundingClientRect();
+    const wrap = getCanvasWrapRect();
     const node = State.nodes[this._dragging]!;
     node.x = e.clientX - wrap.left - this._offset.x;
     node.y = e.clientY - wrap.top  - this._offset.y;

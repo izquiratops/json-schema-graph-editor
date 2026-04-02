@@ -1,5 +1,6 @@
-import { State } from './state';
+import { State } from '../application/state';
 import { PortHandler } from './portHandler';
+import { portCenter } from './domHelpers';
 
 export const EdgeRenderer = {
   render(): void {
@@ -44,7 +45,7 @@ export const EdgeRenderer = {
       ? `#node-${nodeId} .node-header .port-out`
       : `#prop-${nodeId}-${propIdx} .port-out`;
     const port = document.querySelector<HTMLElement>(selector);
-    return port ? PortHandler.center(port) : null;
+    return port ? portCenter(port) : null;
   },
 
   _portInPos(nodeId: string, propIdx?: number): { x: number; y: number } | null {
@@ -52,6 +53,6 @@ export const EdgeRenderer = {
       ? `#node-${nodeId} .node-header .port-in`
       : `#prop-${nodeId}-${propIdx} .port-in`;
     const port = document.querySelector<HTMLElement>(selector);
-    return port ? PortHandler.center(port) : null;
+    return port ? portCenter(port) : null;
   },
 };
