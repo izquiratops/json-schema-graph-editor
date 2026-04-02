@@ -4,17 +4,16 @@ import { getCanvasWrapRect } from './domHelpers';
 
 export const DragHandler = {
   _dragging: null as string | null,
-  _offset: { x: 0, y: 0 },
+  _grabOffset: { x: 0, y: 0 },
 
   attach(el: HTMLElement, id: string): void {
     el.querySelector<HTMLElement>('.badge')!.onmousedown = (e: MouseEvent) => {
       e.preventDefault();
       this._dragging = id;
       const rect = el.getBoundingClientRect();
-      const wrap = getCanvasWrapRect();
-      this._offset = {
-        x: e.clientX - (rect.left - wrap.left),
-        y: e.clientY - (rect.top  - wrap.top),
+      this._grabOffset = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
       };
 
       document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
@@ -27,10 +26,10 @@ export const DragHandler = {
 
   onMouseMove(e: MouseEvent): void {
     if (!this._dragging) return;
-    const wrap = getCanvasWrapRect();
+    const canvasRect = getCanvasWrapRect();
     const node = State.nodes[this._dragging]!;
-    node.x = e.clientX - wrap.left - this._offset.x;
-    node.y = e.clientY - wrap.top  - this._offset.y;
+    node.x = e.clientX - canvasRect.left - this._grabOffset.x;
+    node.y = e.clientY - canvasRect.top  - this._grabOffset.y;
     const el = document.getElementById('node-' + this._dragging)!;
     el.style.left = node.x + 'px';
     el.style.top  = node.y + 'px';
