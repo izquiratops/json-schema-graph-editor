@@ -18,6 +18,9 @@ export const DragHandler = {
 
       document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
       el.classList.add('selected');
+
+      // Move the node element to the end of the #canvas div
+      el.parentElement!.appendChild(el);
     };
   },
 
