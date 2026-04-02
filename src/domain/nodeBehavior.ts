@@ -1,5 +1,5 @@
 import type { PropType, SchemaNode } from './types';
-import { IS_PRIMITIVE, IS_STRUCTURE } from './constants';
+import { PRIMITIVE_NODE_TYPES, STRUCT_NODE_TYPES } from './constants';
 
 export type NodeKind = 'primitive' | 'object' | 'array';
 
@@ -49,11 +49,12 @@ const BEHAVIOR_BY_KIND: Record<NodeKind, Omit<NodeBehavior, 'isRoot'>> = {
   },
 };
 
+// TODO: make sure node and props are consistent
 export function getNodeKind(nodeType: PropType): NodeKind {
-  if (IS_PRIMITIVE(nodeType)) return 'primitive';
+  if (PRIMITIVE_NODE_TYPES.includes(nodeType)) return 'primitive';
   if (nodeType === 'array') return 'array';
-  if (IS_STRUCTURE(nodeType)) return 'object'; // TODO: IS_STRUCTURE is useless here now
-  return 'object';
+  if (nodeType === 'object') return 'object';
+  throw new Error('Node type not recognized.');
 }
 
 export function getNodeBehavior(nodeId: string, nodeType: PropType): NodeBehavior {
@@ -70,7 +71,7 @@ export function getNodeBehavior(nodeId: string, nodeType: PropType): NodeBehavio
 }
 
 export function canPropHaveOutPort(propType: PropType): boolean {
-  return IS_STRUCTURE(propType);
+  return STRUCT_NODE_TYPES.includes(propType);
 }
 
 export function getNodeBehaviorFromNode(node: Pick<SchemaNode, 'id' | 'type'>): NodeBehavior {

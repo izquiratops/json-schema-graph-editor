@@ -52,7 +52,7 @@ function initDemo(): void {
 
   State.addNode({
     id: 'n2', type: 'object', title: 'Address', description: 'Mailing address',
-    x: 290, y: 190,
+    x: 340, y: 190,
     props: [
       { name: 'street', type: 'string' },
       { name: 'city',   type: 'string' },

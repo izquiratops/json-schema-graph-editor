@@ -1,5 +1,5 @@
 import type { ArrayItemsKeyword, PropType, SchemaNode } from '../domain/types';
-import { PROP_TYPES } from '../domain/constants';
+import { ALL_NODE_TYPES } from '../domain/constants';
 import { getNodeBehavior, canPropHaveOutPort } from '../domain/nodeBehavior';
 import { State } from '../application/state';
 import { NodeEventBinder } from './nodeEventBinder';
@@ -70,7 +70,7 @@ export const NodeRenderer = {
   },
 
   _itemsRowHTML(nodeId: string, items: ArrayItemsKeyword): string {
-    const typeOptions = PROP_TYPES.map(type =>
+    const typeOptions = ALL_NODE_TYPES.map(type =>
       `<option${items.type === type ? ' selected' : ''}>${type}</option>`,
     ).join('');
     const behavior = getNodeBehavior(nodeId, 'array');
@@ -94,7 +94,7 @@ export const NodeRenderer = {
     prop: { name: string; type: PropType; required?: boolean },
     idx: number,
   ): string {
-    const typeOptions = PROP_TYPES.map(t =>
+    const typeOptions = ALL_NODE_TYPES.map(t =>
       `<option${prop.type === t ? ' selected' : ''}>${t}</option>`,
     ).join('');
 

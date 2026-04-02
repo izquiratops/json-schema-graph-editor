@@ -11,7 +11,14 @@ export function createNode(id: string, type: PropType, x?: number, y?: number): 
     x: x ?? 60 + Math.random() * 220,
     y: y ?? 80 + Math.random() * 160,
   };
-  if (type === 'object') node.props = [{ name: 'field1', type: 'string', required: false }];
-  if (type === 'array') node.items = { type: 'string' };
+
+  if (type === 'object') {
+    node.props = [{ name: 'field1', type: 'string', required: false }];
+  }
+
+  if (type === 'array') {
+    node.items = { type: 'string' };
+  }
+
   return node;
 }

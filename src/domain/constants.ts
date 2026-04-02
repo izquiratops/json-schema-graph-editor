@@ -1,11 +1,18 @@
 import type { PropType } from './types';
 
-const PRIMITIVE_TYPES: PropType[] = ['string', 'number', 'integer', 'boolean', 'null'];
+export const PRIMITIVE_NODE_TYPES: PropType[] = [
+    'string',
+    'number',
+    'integer',
+    'boolean',
+    'null',
+];
 
-const STRUCT_TYPES: PropType[] = ['object', 'array'];
+export const STRUCT_NODE_TYPES: PropType[] = [
+    'object',
+    'array',
+];
 
-export const PROP_TYPES: PropType[] = [...PRIMITIVE_TYPES, ...STRUCT_TYPES];
-
-export const IS_PRIMITIVE = (type: PropType): boolean => PRIMITIVE_TYPES.includes(type);
-
-export const IS_STRUCTURE = (type: PropType): boolean => STRUCT_TYPES.includes(type);
+export const ALL_NODE_TYPES: PropType[] = [
+    ...PRIMITIVE_NODE_TYPES, ...STRUCT_NODE_TYPES,
+];

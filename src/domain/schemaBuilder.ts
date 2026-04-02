@@ -24,9 +24,13 @@ export function buildSchema(
 
   const schema: JsonSchema = { type: n.type };
 
-  if (n.title.trim().length > 0) schema.title = n.title;
+  if (n.title.trim().length > 0) {
+    schema.title = n.title;
+  }
 
-  if (n.description.trim().length > 0) schema.description = n.description;
+  if (n.description.trim().length > 0) {
+    schema.description = n.description;
+  }
 
   if (n.type === 'object') {
     const properties: Record<string, JsonSchema> = {};
