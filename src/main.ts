@@ -50,7 +50,7 @@ function initDemo(): void {
   });
 
   State.addNode({
-    id: 'n1', type: 'object', title: 'Address', description: 'Mailing address',
+    id: 'n0', type: 'object', title: 'Address', description: 'Mailing address',
     x: 80, y: 190,
     props: [
       { name: 'street', type: 'string' },
@@ -59,7 +59,7 @@ function initDemo(): void {
   });
 
   State.addEdge({
-    fromNode: 'n1', toNode: 'root', toProp: 3,
+    fromNode: 'n0', toNode: 'root', toProp: 3,
   });
 }
 
