@@ -12,9 +12,7 @@ export const EdgeRefs = {
   /**
    * Finds the connected node for a specific property on a node.
    *
-   * Searches for edges in both directions:
-   * - Outgoing: Property → Node (property exports)
-   * - Incoming: Node → Property (property imports)
+    * Searches for the incoming node-header -> property connection.
    *
    * @param _nodes - Map of all schema nodes (unused, kept for compatibility)
    * @param edges - Array of edges to search
@@ -26,11 +24,6 @@ export const EdgeRefs = {
    * const connectedNodeId = EdgeRefs.getRefForProp(nodes, edges, "node1", 0);
    */
   getRefForProp(_nodes: NodesMap, edges: Edge[], nodeId: string, propIdx: number): string | null {
-    // Search for outgoing edge: this property exports to another node
-    const outgoing = edges.find(edge => edge.fromNode === nodeId && edge.fromProp === propIdx && edge.toProp === undefined);
-    if (outgoing) return outgoing.toNode;
-
-    // Search for incoming edge: another node imports to this property
     const incoming = edges.find(edge => edge.toNode === nodeId && edge.toProp === propIdx && edge.fromProp === undefined);
     if (incoming) return incoming.fromNode;
 

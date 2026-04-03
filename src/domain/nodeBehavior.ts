@@ -8,7 +8,6 @@ interface NodeBehavior {
   isRoot: boolean;
   canEditTitle: boolean;
   canDeleteNode: boolean;
-  canHaveHeaderInPort: boolean;
   canHaveHeaderOutPort: boolean;
   canHavePropInPort: boolean;
   canAddProp: boolean;
@@ -16,12 +15,10 @@ interface NodeBehavior {
 }
 
 const BEHAVIOR_BY_KIND: Record<NodeKind, Omit<NodeBehavior, 'isRoot'>> = {
-  // Centralizes graph entity behavior to keep type checks out of DOM rendering paths.
   primitive: {
     nodeKind: 'primitive',
     canEditTitle: true,
     canDeleteNode: true,
-    canHaveHeaderInPort: false,
     canHaveHeaderOutPort: true,
     canHavePropInPort: false,
     canAddProp: false,
@@ -31,7 +28,6 @@ const BEHAVIOR_BY_KIND: Record<NodeKind, Omit<NodeBehavior, 'isRoot'>> = {
     nodeKind: 'object',
     canEditTitle: true,
     canDeleteNode: true,
-    canHaveHeaderInPort: true,
     canHaveHeaderOutPort: true,
     canHavePropInPort: true,
     canAddProp: true,
@@ -41,7 +37,6 @@ const BEHAVIOR_BY_KIND: Record<NodeKind, Omit<NodeBehavior, 'isRoot'>> = {
     nodeKind: 'array',
     canEditTitle: true,
     canDeleteNode: true,
-    canHaveHeaderInPort: true,
     canHaveHeaderOutPort: true,
     canHavePropInPort: true,
     canAddProp: false,
@@ -49,7 +44,7 @@ const BEHAVIOR_BY_KIND: Record<NodeKind, Omit<NodeBehavior, 'isRoot'>> = {
   },
 };
 
-// TODO: make sure node and props are consistent
+// TODO: make sure naming in node and props are consistent
 export function getNodeKind(nodeType: PropType): NodeKind {
   if (PRIMITIVE_NODE_TYPES.includes(nodeType)) return 'primitive';
   if (nodeType === 'array') return 'array';
@@ -65,13 +60,8 @@ export function getNodeBehavior(nodeId: string, nodeType: PropType): NodeBehavio
     ...behavior,
     isRoot,
     canDeleteNode: !isRoot && behavior.canDeleteNode,
-    canHaveHeaderInPort: !isRoot && behavior.canHaveHeaderInPort,
     canHaveHeaderOutPort: !isRoot && behavior.canHaveHeaderOutPort,
   };
-}
-
-export function canPropHaveOutPort(propType: PropType): boolean {
-  return STRUCT_NODE_TYPES.includes(propType);
 }
 
 export function getNodeBehaviorFromNode(node: Pick<SchemaNode, 'id' | 'type'>): NodeBehavior {

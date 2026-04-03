@@ -51,14 +51,6 @@ describe('State.addNode / removeNode', () => {
 });
 
 describe('State.addEdge', () => {
-  it('adds a prop-to-node edge and resolves the source prop ref from edges', () => {
-    addNode('a', 'object', [{ name: 'child', type: 'object' }]);
-    addNode('b', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    assert.equal(State.edges.length, 1);
-    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), 'b');
-  });
-
   it('adds a node-to-prop edge and resolves the target prop ref from edges', () => {
     addNode('s', 'string');
     addNode('o', 'object', [{ name: 'title', type: 'string' }]);
@@ -79,26 +71,24 @@ describe('State.addEdge', () => {
   });
 
   it('replaces the previous outgoing edge for the same source port', () => {
-    addNode('a', 'object', [{ name: 'child', type: 'object' }]);
-    addNode('b', 'object');
-    addNode('c', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'c' });
+    addNode('a', 'string');
+    addNode('b', 'object', [{ name: 'first', type: 'string' }]);
+    addNode('c', 'object', [{ name: 'second', type: 'string' }]);
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
+    State.addEdge({ fromNode: 'a', toNode: 'c', toProp: 0 });
     assert.equal(State.edges.length, 1);
     assert.equal(State.edges[0]!.toNode, 'c');
-    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), 'c');
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'c', 0), 'a');
   });
 
-  it('allows multiple edges across different ports', () => {
-    addNode('a', 'object', [
-      { name: 'first', type: 'object' },
-      { name: 'second', type: 'object' },
-    ]);
-    addNode('b', 'object');
-    addNode('c', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.addEdge({ fromNode: 'a', fromProp: 1, toNode: 'c' });
-    assert.equal(State.edges.length, 2);
+  it('keeps one outgoing edge per source header', () => {
+    addNode('a', 'string');
+    addNode('b', 'object', [{ name: 'first', type: 'string' }]);
+    addNode('c', 'object', [{ name: 'second', type: 'string' }]);
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
+    State.addEdge({ fromNode: 'a', toNode: 'c', toProp: 0 });
+    assert.equal(State.edges.length, 1);
+    assert.equal(State.edges[0]!.toNode, 'c');
   });
 
   it('validates the actual connected port types', () => {
@@ -113,58 +103,40 @@ describe('State.addEdge', () => {
 
 describe('State.removeEdgesOf', () => {
   it('removes edges where node is the source', () => {
-    addNode('a', 'object', [
-      { name: 'first', type: 'object' },
-      { name: 'second', type: 'object' },
-    ]);
-    addNode('b', 'object');
-    addNode('c', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.addEdge({ fromNode: 'a', fromProp: 1, toNode: 'c' });
+    addNode('a', 'string');
+    addNode('b', 'object', [{ name: 'first', type: 'string' }]);
+    addNode('c', 'string');
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
+    State.addEdge({ fromNode: 'c', toNode: 'b', toProp: 0 });
     State.removeEdgesOf('a');
-    assert.equal(State.edges.length, 0);
-    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), null);
-    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 1), null);
+    assert.equal(State.edges.length, 1);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'b', 0), 'c');
   });
 
   it('removes edges where node is the target', () => {
-    addNode('x', 'object', [{ name: 'child', type: 'object' }]);
-    addNode('a', 'object');
-    State.addEdge({ fromNode: 'x', fromProp: 0, toNode: 'a' });
+    addNode('x', 'object');
+    addNode('a', 'object', [{ name: 'child', type: 'object' }]);
+    State.addEdge({ fromNode: 'x', toNode: 'a', toProp: 0 });
     State.removeEdgesOf('a');
     assert.equal(State.edges.length, 0);
-    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'x', 0), null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), null);
   });
 
   it('leaves edges that do not involve the node', () => {
-    addNode('a', 'object', [{ name: 'child', type: 'object' }]);
-    addNode('b', 'object');
-    addNode('c', 'object', [{ name: 'child', type: 'object' }]);
-    addNode('d', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.addEdge({ fromNode: 'c', fromProp: 0, toNode: 'd' });
+    addNode('a', 'object');
+    addNode('b', 'object', [{ name: 'child', type: 'object' }]);
+    addNode('c', 'object');
+    addNode('d', 'object', [{ name: 'child', type: 'object' }]);
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
+    State.addEdge({ fromNode: 'c', toNode: 'd', toProp: 0 });
     State.removeEdgesOf('a');
     assert.equal(State.edges.length, 1);
     assert.equal(State.edges[0]!.fromNode, 'c');
+    assert.equal(State.edges[0]!.toNode, 'd');
   });
 });
 
 describe('State.removeEdgeFromProp', () => {
-  it('removes a specific source+prop edge', () => {
-    addNode('a', 'object', [
-      { name: 'first', type: 'object' },
-      { name: 'second', type: 'object' },
-    ]);
-    addNode('b', 'object');
-    addNode('c', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.addEdge({ fromNode: 'a', fromProp: 1, toNode: 'c' });
-    State.removeEdgeFromProp('a', 0);
-    assert.equal(State.edges.length, 1);
-    assert.equal(State.edges[0]!.fromProp, 1);
-    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'a', 0), null);
-  });
-
   it('removes a specific target prop edge', () => {
     addNode('s', 'string');
     addNode('o', 'object', [
@@ -177,28 +149,32 @@ describe('State.removeEdgeFromProp', () => {
     assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'o', 0), null);
   });
 
+  it('removes only the requested target prop edge', () => {
+    addNode('titleSource', 'string');
+    addNode('slugSource', 'string');
+    addNode('o', 'object', [
+      { name: 'title', type: 'string' },
+      { name: 'slug', type: 'string' },
+    ]);
+    State.addEdge({ fromNode: 'titleSource', toNode: 'o', toProp: 0 });
+    State.addEdge({ fromNode: 'slugSource', toNode: 'o', toProp: 1 });
+    State.removeEdgeFromProp('o', 0);
+    assert.equal(State.edges.length, 1);
+    assert.equal(State.edges[0]!.toProp, 1);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'o', 0), null);
+    assert.equal(EdgeRefs.getRefForProp(State.nodes, State.edges, 'o', 1), 'slugSource');
+  });
+
   it('does not remove edges from a different node', () => {
-    addNode('a', 'object', [{ name: 'child', type: 'object' }]);
-    addNode('b', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
+    addNode('a', 'object');
+    addNode('b', 'object', [{ name: 'child', type: 'object' }]);
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
     State.removeEdgeFromProp('x', 0);
     assert.equal(State.edges.length, 1);
   });
 });
 
 describe('State.shiftEdgePropIndices', () => {
-  it('decrements prop indices above the deleted index', () => {
-    addNode('a', 'object', [
-      { name: 'first', type: 'object' },
-      { name: 'second', type: 'object' },
-      { name: 'third', type: 'object' },
-    ]);
-    addNode('b', 'object');
-    State.addEdge({ fromNode: 'a', fromProp: 2, toNode: 'b' });
-    State.shiftEdgePropIndices('a', 1);
-    assert.equal(State.edges[0]!.fromProp, 1);
-  });
-
   it('decrements target prop indices above the deleted index', () => {
     addNode('s', 'string');
     addNode('o', 'object', [
@@ -212,18 +188,19 @@ describe('State.shiftEdgePropIndices', () => {
   });
 
   it('does not affect edges from other nodes', () => {
+    addNode('a', 'object', [{ name: 'local', type: 'string' }]);
     addNode('b', 'object', [
-      { name: 'first', type: 'object' },
-      { name: 'second', type: 'object' },
-      { name: 'third', type: 'object' },
-      { name: 'fourth', type: 'object' },
-      { name: 'fifth', type: 'object' },
-      { name: 'sixth', type: 'object' },
+      { name: 'first', type: 'string' },
+      { name: 'second', type: 'string' },
+      { name: 'third', type: 'string' },
+      { name: 'fourth', type: 'string' },
+      { name: 'fifth', type: 'string' },
+      { name: 'sixth', type: 'string' },
     ]);
-    addNode('c', 'object');
-    State.addEdge({ fromNode: 'b', fromProp: 5, toNode: 'c' });
+    addNode('s', 'string');
+    State.addEdge({ fromNode: 's', toNode: 'b', toProp: 5 });
     State.shiftEdgePropIndices('a', 0);
-    assert.equal(State.edges[0]!.fromProp, 5);
+    assert.equal(State.edges[0]!.toProp, 5);
   });
 });
 
@@ -256,22 +233,21 @@ describe('State change events', () => {
   });
 
   it('emits edge lifecycle events on add/remove/reindex', () => {
-    addNode('a', 'object', [
-      { name: 'first', type: 'object' },
-      { name: 'second', type: 'object' },
+    addNode('a', 'string');
+    addNode('b', 'object', [
+      { name: 'first', type: 'string' },
+      { name: 'second', type: 'string' },
     ]);
-    addNode('b', 'object');
-    addNode('c', 'object');
 
     const events: string[] = [];
     const unsubscribe = State.onChange(event => {
       events.push(event.type);
     });
 
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.removeEdgeFromProp('a', 0);
-    State.addEdge({ fromNode: 'a', fromProp: 1, toNode: 'c' });
-    State.shiftEdgePropIndices('a', 0);
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
+    State.removeEdgeFromProp('b', 0);
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 1 });
+    State.shiftEdgePropIndices('b', 0);
 
     unsubscribe();
 

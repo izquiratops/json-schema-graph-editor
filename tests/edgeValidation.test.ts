@@ -9,14 +9,6 @@ function makeNode(id: string, type: SchemaNode['type'], props: SchemaNode['props
 }
 
 describe('validateEdge', () => {
-  it('accepts a valid prop-to-header edge with matching types', () => {
-    const nodes = {
-      a: makeNode('a', 'object', [{ name: 'child', type: 'object' }]),
-      b: makeNode('b', 'object'),
-    };
-    assert.doesNotThrow(() => validateEdge(nodes, { fromNode: 'a', fromProp: 0, toNode: 'b' }));
-  });
-
   it('accepts a valid header-to-prop edge with matching types', () => {
     const nodes = {
       a: makeNode('a', 'string'),
@@ -32,44 +24,55 @@ describe('validateEdge', () => {
     };
     assert.throws(
       () => validateEdge(nodes, { fromNode: 'a', toNode: 'b' }),
-      /must link a node header to a prop row/,
+      /must end at a prop row/,
     );
   });
 
-  it('rejects edges linking two props (prop index on both sides)', () => {
+  it('rejects edges starting from a prop row', () => {
     const nodes = {
       a: makeNode('a', 'object', [{ name: 'x', type: 'string' }]),
       b: makeNode('b', 'object', [{ name: 'y', type: 'string' }]),
     };
     assert.throws(
       () => validateEdge(nodes, { fromNode: 'a', fromProp: 0, toNode: 'b', toProp: 0 }),
-      /must link a node header to a prop row/,
+      /must start from a node header/,
     );
   });
 
   it('rejects type mismatches between source and target', () => {
     const nodes = {
-      a: makeNode('a', 'object', [{ name: 'x', type: 'string' }]),
-      b: makeNode('b', 'number'),
+      a: makeNode('a', 'number'),
+      b: makeNode('b', 'object', [{ name: 'x', type: 'string' }]),
     };
     assert.throws(
-      () => validateEdge(nodes, { fromNode: 'a', fromProp: 0, toNode: 'b' }),
+      () => validateEdge(nodes, { fromNode: 'a', toNode: 'b', toProp: 0 }),
       /Type mismatch/,
     );
   });
 
   it('validates array items keyword type correctly', () => {
     const nodes = {
-      a: makeNode('a', 'array'),
-      b: makeNode('b', 'string'),
+      a: makeNode('a', 'string'),
+      b: makeNode('b', 'array'),
     };
-    nodes.a.items = { type: 'string' };
-    assert.doesNotThrow(() => validateEdge(nodes, { fromNode: 'a', fromProp: 0, toNode: 'b' }));
+    nodes.b.items = { type: 'string' };
+    assert.doesNotThrow(() => validateEdge(nodes, { fromNode: 'a', toNode: 'b', toProp: 0 }));
+  });
+
+  it('rejects root as a source node because it has no output port', () => {
+    const nodes = {
+      root: makeNode('root', 'object'),
+      b: makeNode('b', 'object', [{ name: 'child', type: 'object' }]),
+    };
+    assert.throws(
+      () => validateEdge(nodes, { fromNode: 'root', toNode: 'b', toProp: 0 }),
+      /Root node does not expose an output port/,
+    );
   });
 
   it('throws for unknown node references', () => {
     assert.throws(
-      () => validateEdge({}, { fromNode: 'missing', fromProp: 0, toNode: 'also-missing' }),
+      () => validateEdge({}, { fromNode: 'missing', toNode: 'also-missing', toProp: 0 }),
       /Unknown node/,
     );
   });

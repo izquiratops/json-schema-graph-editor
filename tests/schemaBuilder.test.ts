@@ -65,7 +65,7 @@ describe('SchemaBuilder.build — object', () => {
   it('resolves nested schema from a prop-to-node connection', () => {
     addNode('root', 'object', [{ name: 'addr', type: 'object' }]);
     addNode('n1', 'object', [{ name: 'city', type: 'string' }]);
-    State.addEdge({ fromNode: 'root', fromProp: 0, toNode: 'n1' });
+    State.addEdge({ fromNode: 'n1', toNode: 'root', toProp: 0 });
     assert.deepEqual(buildSchema(State.nodes, State.edges,'root'), {
       type: 'object',
       properties: {
@@ -113,7 +113,7 @@ describe('SchemaBuilder.build — array', () => {
   it('resolves items from a prop-to-node connection', () => {
     addNode('root', 'array', [{ name: 'items', type: 'object' }]);
     addNode('n1', 'object', [{ name: 'val', type: 'number' }]);
-    State.addEdge({ fromNode: 'root', fromProp: 0, toNode: 'n1' });
+    State.addEdge({ fromNode: 'n1', toNode: 'root', toProp: 0 });
     assert.deepEqual(buildSchema(State.nodes, State.edges,'root'), {
       type: 'array',
       items: {
@@ -143,17 +143,24 @@ describe('SchemaBuilder.build — array', () => {
 
 describe('SchemaBuilder.build — circular references', () => {
   it('returns {} when a node is visited twice (cycle guard)', () => {
-    addNode('root', 'object', [{ name: 'self', type: 'object' }]);
-    State.addEdge({ fromNode: 'root', fromProp: 0, toNode: 'root' });
-    const schema = buildSchema(State.nodes, State.edges,'root');
-    assert.deepEqual(schema.properties!['self'], {});
+    addNode('a', 'object', [{ name: 'b', type: 'object' }]);
+    addNode('b', 'object', [{ name: 'a', type: 'object' }]);
+    State.addEdge({ fromNode: 'b', toNode: 'a', toProp: 0 });
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
+    const schema = buildSchema(State.nodes, State.edges,'a');
+    assert.deepEqual(schema.properties!['b'], {
+      type: 'object',
+      properties: {
+        a: {},
+      },
+    });
   });
 
   it('handles mutual cycles between two nodes gracefully', () => {
     addNode('a', 'object', [{ name: 'b', type: 'object' }]);
     addNode('b', 'object', [{ name: 'a', type: 'object' }]);
-    State.addEdge({ fromNode: 'a', fromProp: 0, toNode: 'b' });
-    State.addEdge({ fromNode: 'b', fromProp: 0, toNode: 'a' });
+    State.addEdge({ fromNode: 'b', toNode: 'a', toProp: 0 });
+    State.addEdge({ fromNode: 'a', toNode: 'b', toProp: 0 });
     // Should not throw or infinite-loop
     assert.doesNotThrow(() => buildSchema(State.nodes, State.edges,'a'));
   });

@@ -25,8 +25,12 @@ export function validateEdge(nodes: NodesMap, edge: Edge): void {
   const hasFromProp = hasPropIndex(edge.fromProp);
   const hasToProp = hasPropIndex(edge.toProp);
 
-  if (hasFromProp === hasToProp) {
-    throw new Error('Connections must link a node header to a prop row, or a prop row to a node header.');
+  if (hasFromProp) {
+    throw new Error('Connections must start from a node header, not a prop row.');
+  }
+
+  if (!hasToProp) {
+    throw new Error('Connections must end at a prop row.');
   }
 
   const fromNode = nodes[edge.fromNode];
@@ -34,12 +38,12 @@ export function validateEdge(nodes: NodesMap, edge: Edge): void {
   const toNode = nodes[edge.toNode];
   if (!toNode) throw new Error(`Unknown node: "${edge.toNode}".`);
 
-  const sourceType = hasFromProp
-    ? getPortType(nodes, edge.fromNode, edge.fromProp as number)
-    : fromNode.type;
-  const targetType = hasToProp
-    ? getPortType(nodes, edge.toNode, edge.toProp as number)
-    : toNode.type;
+  if (edge.fromNode === 'root') {
+    throw new Error('Root node does not expose an output port.');
+  }
+
+  const sourceType = fromNode.type;
+  const targetType = getPortType(nodes, edge.toNode, edge.toProp as number);
 
   if (sourceType !== targetType) {
     throw new Error(

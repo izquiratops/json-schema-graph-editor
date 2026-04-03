@@ -4,7 +4,6 @@ import { portCenter, getCanvasWrapRect } from './domHelpers';
 
 interface Preview {
   fromNode: string;
-  fromProp?: number;
   x: number;
   y: number;
   ex: number;
@@ -22,7 +21,6 @@ export const PortHandler = {
         const pos = portCenter(port);
         this._preview = {
           fromNode: id,
-          fromProp: this._propIndex(port),
           ...pos,
           ex: pos.x,
           ey: pos.y,
@@ -35,10 +33,10 @@ export const PortHandler = {
       port.onmouseup = (e: MouseEvent) => {
         if (!this._preview || this._preview.fromNode === id) return;
         e.stopPropagation();
-        const { fromNode, fromProp } = this._preview;
+        const { fromNode } = this._preview;
         const toProp = this._propIndex(port);
         try {
-          State.addEdge({ fromNode, fromProp, toNode: id, toProp });
+          State.addEdge({ fromNode, toNode: id, toProp });
         } catch (error) {
           const { message } = error as Error;
           console.warn(message);

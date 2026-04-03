@@ -1,6 +1,6 @@
 import type { ArrayItemsKeyword, PropType, SchemaNode } from '../domain/types';
 import { ALL_NODE_TYPES } from '../domain/constants';
-import { getNodeBehavior, canPropHaveOutPort } from '../domain/nodeBehavior';
+import { getNodeBehavior } from '../domain/nodeBehavior';
 import { State } from '../application/state';
 import { NodeEventBinder } from './nodeEventBinder';
 import { DragHandler } from './dragHandler';
@@ -32,7 +32,6 @@ export const NodeRenderer = {
 
   _headerHTML(id: string, title: string, type: PropType, isRoot: boolean): string {
     const behavior = getNodeBehavior(id, type);
-    const portIn = behavior.canHaveHeaderInPort ? `<div class="port-in" data-node="${id}"></div>` : '';
     const portOut = behavior.canHaveHeaderOutPort ? `<div class="port-out" data-node="${id}"></div>` : '';
     const delBtn = behavior.canDeleteNode
       ? `<button class="btn-delete-node" data-action="delete-node">×</button>`
@@ -40,7 +39,6 @@ export const NodeRenderer = {
     const ro = behavior.canEditTitle ? '' : 'readonly';
     return `
       <div class="node-header">
-        ${portIn}
         <span class="badge badge-${isRoot ? 'root' : type}">${isRoot ? 'root' : type}</span>
         <input class="node-title" value="${this._escapeAttr(title)}" placeholder="title" ${ro}>
         ${delBtn}
@@ -104,10 +102,6 @@ export const NodeRenderer = {
       ? `<div class="port-in" data-node="${nodeId}" data-prop="${idx}"></div>`
       : '';
 
-    const portOut = canPropHaveOutPort(prop.type)
-      ? `<div class="port-out" data-node="${nodeId}" data-prop="${idx}"></div>`
-      : '';
-
     const requiredChecked = prop.required ? 'checked' : '';
 
     return `
@@ -122,7 +116,6 @@ export const NodeRenderer = {
           <small>Required</small>
         </label>
         <button class="btn-delete-prop" data-action="delete-prop" data-prop-idx="${idx}">×</button>
-        ${portOut}
       </div>`;
   },
 

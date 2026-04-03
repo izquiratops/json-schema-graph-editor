@@ -45,7 +45,7 @@ function getProp(nodeId: string, propIdx: number) {
 }
 
 function sameSourcePort(left: Edge, right: Edge): boolean {
-  return left.fromNode === right.fromNode && left.fromProp === right.fromProp;
+  return left.fromNode === right.fromNode;
 }
 
 function sameTargetPort(left: Edge, right: Edge): boolean {
@@ -142,8 +142,8 @@ export const State = {
     validateEdge(_state.nodes, edge);
 
     removeEdges(existing => sameTargetPort(existing, edge));
-    // One outgoing edge per output port. When anyOf/oneOf nodes are implemented,
-    // this restriction should be lifted for props that belong to those types.
+    // One outgoing edge per node header. When anyOf/oneOf nodes are implemented,
+    // this restriction should be lifted for headers that need fan-out.
     removeEdges(existing => sameSourcePort(existing, edge));
     _state.edges.push(edge);
     emitChange({ type: 'edgeAdded', edge });
@@ -154,19 +154,13 @@ export const State = {
   },
 
   removeEdgeFromProp(nodeId: string, propIdx: number): void {
-    removeEdges(edge =>
-      (edge.fromNode === nodeId && edge.fromProp === propIdx)
-      || (edge.toNode === nodeId && edge.toProp === propIdx),
-    );
+    removeEdges(edge => edge.toNode === nodeId && edge.toProp === propIdx);
   },
 
   shiftEdgePropIndices(nodeId: string, deletedIdx: number): void {
     _state.edges = _state.edges.map(e =>
       ({
         ...e,
-        fromProp: e.fromNode === nodeId && hasPropIndex(e.fromProp) && e.fromProp > deletedIdx
-          ? e.fromProp - 1
-          : e.fromProp,
         toProp: e.toNode === nodeId && hasPropIndex(e.toProp) && e.toProp > deletedIdx
           ? e.toProp - 1
           : e.toProp,

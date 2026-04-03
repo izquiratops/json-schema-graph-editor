@@ -40,7 +40,7 @@ startRenderCoordinator({
 function initDemo(): void {
   State.addNode({
     id: 'root', type: 'object', title: 'Person', description: 'A person record',
-    x: 30, y: 80,
+    x: 430, y: 80,
     props: [
       { name: 'id',      type: 'string'  },
       { name: 'age',     type: 'number'  },
@@ -48,19 +48,19 @@ function initDemo(): void {
       { name: 'address', type: 'object' },
     ],
   });
-  State._nextId = 1;
 
   State.addNode({
-    id: 'n2', type: 'object', title: 'Address', description: 'Mailing address',
-    x: 340, y: 190,
+    id: 'n1', type: 'object', title: 'Address', description: 'Mailing address',
+    x: 80, y: 190,
     props: [
       { name: 'street', type: 'string' },
       { name: 'city',   type: 'string' },
     ],
   });
-  State._nextId = 2;
 
-  State.addEdge({ fromNode: 'root', fromProp: 3, toNode: 'n2' });
+  State.addEdge({
+    fromNode: 'n1', toNode: 'root', toProp: 3,
+  });
 }
 
 initDemo();
